@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Note: This is a basic implementation and may not be suitable for production use.
  * Consider using a more robust solution like Redis or a dedicated rate limiting library for production.
  */
-@Component
+//@Component
 public class RateLimitingFilter implements Filter {
 
     // Map to store request counts per IP address

@@ -15,7 +15,7 @@ public class TinyUrlAppApplication {
 	}
 
 
-    @Bean
+    //@Bean
     public FilterRegistrationBean<RateLimitingFilter> rateLimitingFilter() {
         FilterRegistrationBean<RateLimitingFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new RateLimitingFilter());
