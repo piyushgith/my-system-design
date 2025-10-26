@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="common-library" />
+      </profile>
+      <profile name="Annotation profile for saga orchestrator service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
+        </processorPath>
+        <module name="loan-application-service" />
+        <module name="saga-orchestrator-service" />
+        <module name="property-valuation-service" />
+        <module name="document-verification-service" />
+        <module name="api-gateway" />
+        <module name="credit-check-service" />
+        <module name="loan-processing-service" />
+        <module name="eureka-server" />
+        <module name="notification-service" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="api-gateway" options="-parameters" />
+      <module name="credit-check-service" options="-parameters" />
+      <module name="document-verification-service" options="-parameters" />
+      <module name="eureka-server" options="-parameters" />
+      <module name="loan-application-service" options="-parameters" />
+      <module name="loan-processing-service" options="-parameters" />
+      <module name="notification-service" options="-parameters" />
+      <module name="property-valuation-service" options="-parameters" />
+      <module name="saga-orchestrator-service" options="-parameters" />
+    </option>
+  </component>
+</project>
