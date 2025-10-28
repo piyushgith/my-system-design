@@ -53,7 +53,7 @@ server:
 
 logging:
   level:
-    org.springframework.kafka: INFO
+    org.springframework.kafka: DEBUG
     com.homeloan.creditcheckservice: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

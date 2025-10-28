@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.dto;
+package com.homeloan.documents.dto;
 
 public final class KafkaTopicsConstant {
 
