@@ -1,6 +1,7 @@
 package com.homeloan.creditcheck.dto;
 
 
+import com.homeloan.application.dto.ApplicationStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,20 +42,6 @@ public class LoanApplicationDto implements Serializable {
 
     private LocalDateTime updatedAt;
 
-    public enum ApplicationStatus {
-        SUBMITTED,
-        CREDIT_CHECK_IN_PROGRESS,
-        CREDIT_CHECK_APPROVED,
-        CREDIT_CHECK_REJECTED,
-        PROPERTY_VALUATION_IN_PROGRESS,
-        PROPERTY_VALUATION_APPROVED,
-        PROPERTY_VALUATION_REJECTED,
-        DOCUMENT_VERIFICATION_IN_PROGRESS,
-        DOCUMENT_VERIFICATION_APPROVED,
-        DOCUMENT_VERIFICATION_REJECTED,
-        LOAN_PROCESSING_IN_PROGRESS,
-        LOAN_APPROVED,
-        LOAN_REJECTED,
-        CANCELLED
-    }
+
 }
+
