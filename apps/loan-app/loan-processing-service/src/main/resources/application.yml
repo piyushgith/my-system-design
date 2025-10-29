@@ -1,9 +1,9 @@
 spring:
   application:
-    name: credit-check-service
+    name: loan-processing-service
 
   datasource:
-    url: jdbc:h2:file:/app/data/credit-check-db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    url: jdbc:h2:file:/app/data/loan-processing-db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
     username: sa
     password: password
     driver-class-name: org.h2.Driver
@@ -49,7 +49,7 @@ eureka:
 
 
 server:
-  port: 8082
+  port: 8085
 
 logging:
   level:

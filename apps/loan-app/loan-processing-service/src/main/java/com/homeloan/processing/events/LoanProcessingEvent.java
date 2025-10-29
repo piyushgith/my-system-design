@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.events;
+package com.homeloan.processing.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
