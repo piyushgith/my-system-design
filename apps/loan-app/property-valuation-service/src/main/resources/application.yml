@@ -1,6 +1,6 @@
 spring:
   application:
-    name: credit-check-service
+    name: property-valuation-service
 
   datasource:
     url: jdbc:h2:file:/app/data/credit-check-db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
@@ -49,7 +49,7 @@ eureka:
 
 
 server:
-  port: 8082
+  port: 8086
 
 logging:
   level:
