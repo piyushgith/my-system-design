@@ -3,7 +3,7 @@ spring:
     name: property-valuation-service
 
   datasource:
-    url: jdbc:h2:file:/app/data/credit-check-db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    url: jdbc:h2:file:/app/data/property-valuation-db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
     username: sa
     password: password
     driver-class-name: org.h2.Driver
@@ -49,7 +49,7 @@ eureka:
 
 
 server:
-  port: 8086
+  port: 8083
 
 logging:
   level:
