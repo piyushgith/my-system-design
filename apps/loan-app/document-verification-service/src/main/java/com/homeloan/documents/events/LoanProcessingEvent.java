@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.events;
+package com.homeloan.documents.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +25,7 @@ public class LoanProcessingEvent {
     private String processedBy;
     private String sagaId;
     private String eventType;
+    private LocalDateTime eventTime;
 
     public enum ApprovalStatus {
         PENDING, APPROVED, REJECTED

@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.dto;
+package com.homeloan.saga.orchestrator.dto;
 
 public enum EventType {
     SAGA_STARTED,

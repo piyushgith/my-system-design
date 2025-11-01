@@ -1,4 +1,4 @@
-package com.homeloan.saga_orchestrator_service;
+package com.homeloan.saga.orchestrator;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

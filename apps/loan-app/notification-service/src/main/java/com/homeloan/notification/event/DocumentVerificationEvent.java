@@ -22,6 +22,7 @@ public class DocumentVerificationEvent {
     private String comments;
     private String sagaId;
     private String eventType;
+    private LocalDateTime eventTime;
 
     public enum DocumentType {
         IDENTITY_PROOF, ADDRESS_PROOF, INCOME_PROOF, PROPERTY_DOCUMENTS, BANK_STATEMENTS, TAX_RETURNS

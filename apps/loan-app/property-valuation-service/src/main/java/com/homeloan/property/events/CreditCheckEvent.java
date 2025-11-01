@@ -20,6 +20,7 @@ public class CreditCheckEvent {
     private LocalDateTime checkDate;
     private String sagaId;
     private String eventType;
+    private LocalDateTime eventTime;
 
     public enum CreditStatus {
         PENDING, APPROVED, REJECTED

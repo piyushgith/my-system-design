@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.dto;
+package com.homeloan.saga.orchestrator.dto;
 
 
 import jakarta.validation.constraints.NotNull;

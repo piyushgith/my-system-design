@@ -1,4 +1,4 @@
-package com.homeloan.saga_orchestrator_service;
+package com.homeloan.saga.orchestrator;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

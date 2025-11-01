@@ -1,4 +1,4 @@
-package com.homeloan.creditcheck.events;
+package com.homeloan.saga.orchestrator.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +21,7 @@ public class PropertyValuationEvent {
     private String valuerName;
     private String sagaId;
     private String eventType;
+    private LocalDateTime eventTime;
 
     public enum ValuationStatus {
         PENDING, APPROVED, REJECTED;

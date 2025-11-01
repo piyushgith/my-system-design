@@ -21,6 +21,7 @@ public class PropertyValuationEvent {
     private String valuerName;
     private String sagaId;
     private String eventType;
+    private LocalDateTime eventTime;
 
     public enum ValuationStatus {
         PENDING, APPROVED, REJECTED;
