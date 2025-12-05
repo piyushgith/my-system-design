@@ -1,29 +1,61 @@
 package com.java.leave.management.system.controller;
 
+import com.java.leave.management.system.config.JwtTokenProvider;
 import com.java.leave.management.system.dto.ApiResponse;
 import com.java.leave.management.system.dto.EmployeeDto;
+import com.java.leave.management.system.dto.LoginRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
+
+@Validated
 @RestController
-@RequestMapping("${app.leave-management.base-path}/auth")
 @RequiredArgsConstructor
+@RequestMapping("${app.leave-management.base-path}/auth")
 public class AuthController {
 
-    // This is a placeholder for authentication endpoints
-    // In a real application, you would implement login, registration, etc.
-    
+    private final JwtTokenProvider tokenProvider;
+
+    private final ReactiveAuthenticationManager authenticationManager;
+
     @PostMapping("/login")
+    public Mono<ResponseEntity> login(@Valid @RequestBody Mono<LoginRequest> authRequest) {
+        return authRequest
+                .flatMap(login -> this.authenticationManager
+                        .authenticate(new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()))
+                        .map(this.tokenProvider::createToken))
+                .map(jwt -> {
+                    HttpHeaders httpHeaders = new HttpHeaders();
+                    httpHeaders.add(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+                    var tokenBody = Map.of("access_token", jwt);
+                    return new ResponseEntity<>(tokenBody, httpHeaders, HttpStatus.OK);
+                });
+    }
+
+/*    @PostMapping("/login")
     public Mono<ResponseEntity<ApiResponse<String>>> login() {
         // Placeholder implementation
         return Mono.just(ResponseEntity.ok(ApiResponse.success("Login successful", "JWT_TOKEN_PLACEHOLDER")));
-    }
-    
+    }*/
+
     @PostMapping("/register")
     public Mono<ResponseEntity<ApiResponse<EmployeeDto>>> register() {
         // Placeholder implementation
         return Mono.just(ResponseEntity.ok(ApiResponse.success("Registration successful", null)));
     }
+
 }
+
