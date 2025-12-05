@@ -2,6 +2,8 @@ package com.java.leave.management.system.config;
 
 
 import com.java.leave.management.system.repository.UserRepository;
+import com.java.leave.management.system.security.JwtTokenAuthenticationFilter;
+import com.java.leave.management.system.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,11 +33,13 @@ public class SecurityConfig {
 
     private final JwtTokenAuthenticationFilter jwtAuthFilter;
 
+    // http://localhost:9000/webjars/swagger-ui/index.html
+
     @Bean
     SecurityWebFilterChain springWebFilterChain(ServerHttpSecurity http,
                                                 JwtTokenProvider tokenProvider,
                                                 ReactiveAuthenticationManager reactiveAuthenticationManager) {
-        final String PATH_POSTS="/posts/**";
+        final String PATH_POSTS="/webjars/swagger-ui/**";
 
         return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
@@ -43,10 +47,13 @@ public class SecurityConfig {
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(it->it
                         .pathMatchers(HttpMethod.GET,PATH_POSTS).permitAll()
-                        .pathMatchers(HttpMethod.DELETE,PATH_POSTS).hasRole("ADMIN")
-                        .pathMatchers(PATH_POSTS).authenticated()
+                        .pathMatchers("/webjars/h2-console/**").permitAll()
+                        //.pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/webjars/**", "/swagger-resources/**", "/actuator/**").permitAll()
+                        //.pathMatchers(HttpMethod.DELETE,PATH_POSTS).hasRole("ADMIN")
+                        //.pathMatchers(PATH_POSTS).authenticated()
                         .pathMatchers("/me").authenticated()
-                        .pathMatchers("/users/{user}/**").access(this::currentUserMatchesPath)
+                        .pathMatchers("/users/{user}/**")
+                        .access(this::currentUserMatchesPath)
                         .anyExchange().permitAll())
                 .addFilterAt(new JwtTokenAuthenticationFilter(tokenProvider),SecurityWebFiltersOrder.HTTP_BASIC)
                 .build();

@@ -1,9 +1,9 @@
 package com.java.leave.management.system.controller;
 
-import com.java.leave.management.system.config.JwtTokenProvider;
 import com.java.leave.management.system.dto.ApiResponse;
 import com.java.leave.management.system.dto.EmployeeDto;
 import com.java.leave.management.system.dto.LoginRequest;
+import com.java.leave.management.system.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;

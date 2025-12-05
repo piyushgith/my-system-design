@@ -23,6 +23,11 @@ public class EmployeeLeaveController {
     private final NotificationService notificationService;
     private final EmployeeService employeeService;
 
+    @GetMapping("/health")
+    public Mono<ResponseEntity<String>> healthCheck() {
+        return Mono.just(ResponseEntity.ok("Employee Leave Management Service is up and running"));
+    }
+
     @PostMapping("/leaves/request")
     public Mono<ResponseEntity<LeaveRequestResponseDto>> requestLeave(
             @RequestBody @Valid CreateLeaveRequestDto requestDto) {

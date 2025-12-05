@@ -1,4 +1,4 @@
-package com.java.leave.management.system.config;
+package com.java.leave.management.system.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
