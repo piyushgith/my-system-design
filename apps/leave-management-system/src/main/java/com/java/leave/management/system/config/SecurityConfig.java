@@ -5,6 +5,7 @@ import com.java.leave.management.system.repository.UserRepository;
 import com.java.leave.management.system.security.JwtTokenAuthenticationFilter;
 import com.java.leave.management.system.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,8 +32,12 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    @Value("${app.leave-management.base-path}")
+    private String basePath;
+
     private final JwtTokenAuthenticationFilter jwtAuthFilter;
 
+    // http://localhost:9000/webjars/swagger-ui/index.html
     // http://localhost:9000/webjars/swagger-ui/index.html
 
     @Bean
@@ -46,15 +51,12 @@ public class SecurityConfig {
                 .authenticationManager(reactiveAuthenticationManager)
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(it->it
-                        .pathMatchers(HttpMethod.GET,PATH_POSTS).permitAll()
-                        .pathMatchers("/webjars/h2-console/**").permitAll()
-                        //.pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/webjars/**", "/swagger-resources/**", "/actuator/**").permitAll()
-                        //.pathMatchers(HttpMethod.DELETE,PATH_POSTS).hasRole("ADMIN")
-                        //.pathMatchers(PATH_POSTS).authenticated()
-                        .pathMatchers("/me").authenticated()
-                        .pathMatchers("/users/{user}/**")
-                        .access(this::currentUserMatchesPath)
-                        .anyExchange().permitAll())
+                        .pathMatchers(basePath + "/auth/**").permitAll()
+                        .pathMatchers(basePath + "/admin/**").hasRole("ADMIN")
+                        .pathMatchers(basePath + "/manager/**").hasAnyRole("MANAGER","ADMIN")
+                        .pathMatchers(basePath + "/employee/**").hasAnyRole("EMPLOYEE","MANAGER","ADMIN")
+                        .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/webjars/**", "/swagger-resources/**", "/actuator/**").permitAll()
+                        .anyExchange().authenticated())
                 .addFilterAt(new JwtTokenAuthenticationFilter(tokenProvider),SecurityWebFiltersOrder.HTTP_BASIC)
                 .build();
     }

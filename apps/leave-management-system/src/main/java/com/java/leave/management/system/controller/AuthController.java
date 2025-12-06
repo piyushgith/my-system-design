@@ -3,6 +3,7 @@ package com.java.leave.management.system.controller;
 import com.java.leave.management.system.dto.ApiResponse;
 import com.java.leave.management.system.dto.EmployeeDto;
 import com.java.leave.management.system.dto.LoginRequest;
+import com.java.leave.management.system.dto.UsersDto;
 import com.java.leave.management.system.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,10 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -30,6 +28,11 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
 
     private final ReactiveAuthenticationManager authenticationManager;
+
+    @GetMapping("/health")
+    public Mono<ResponseEntity<String>> healthCheck() {
+        return Mono.just(ResponseEntity.ok("Employee Leave Management Service is up and running"));
+    }
 
     @PostMapping("/login")
     public Mono<ResponseEntity> login(@Valid @RequestBody Mono<LoginRequest> authRequest) {
@@ -52,7 +55,7 @@ public class AuthController {
     }*/
 
     @PostMapping("/register")
-    public Mono<ResponseEntity<ApiResponse<EmployeeDto>>> register() {
+    public Mono<ResponseEntity<ApiResponse<UsersDto>>> register(@RequestBody Mono<UsersDto> userDtoMono) {
         // Placeholder implementation
         return Mono.just(ResponseEntity.ok(ApiResponse.success("Registration successful", null)));
     }

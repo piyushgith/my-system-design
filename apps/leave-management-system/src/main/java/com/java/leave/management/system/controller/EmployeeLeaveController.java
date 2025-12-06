@@ -15,18 +15,13 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("${app.leave-management.base-path}")
+@RequestMapping("${app.leave-management.base-path}/employee")
 @RequiredArgsConstructor
 public class EmployeeLeaveController {
 
     private final LeaveRequestService leaveRequestService;
     private final NotificationService notificationService;
     private final EmployeeService employeeService;
-
-    @GetMapping("/health")
-    public Mono<ResponseEntity<String>> healthCheck() {
-        return Mono.just(ResponseEntity.ok("Employee Leave Management Service is up and running"));
-    }
 
     @PostMapping("/leaves/request")
     public Mono<ResponseEntity<LeaveRequestResponseDto>> requestLeave(

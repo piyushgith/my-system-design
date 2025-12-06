@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("${app.leave-management.base-path}")
+@RequestMapping("${app.leave-management.base-path}/manager")
 @RequiredArgsConstructor
 public class ManagerLeaveController {
 
