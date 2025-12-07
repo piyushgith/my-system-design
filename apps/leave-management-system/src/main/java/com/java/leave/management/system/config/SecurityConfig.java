@@ -44,8 +44,6 @@ public class SecurityConfig {
     SecurityWebFilterChain springWebFilterChain(ServerHttpSecurity http,
                                                 JwtTokenProvider tokenProvider,
                                                 ReactiveAuthenticationManager reactiveAuthenticationManager) {
-        final String PATH_POSTS="/webjars/swagger-ui/**";
-
         return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .authenticationManager(reactiveAuthenticationManager)

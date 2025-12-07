@@ -38,7 +38,7 @@ public class AuthController {
     public Mono<ResponseEntity> login(@Valid @RequestBody Mono<LoginRequest> authRequest) {
         return authRequest
                 .flatMap(login -> this.authenticationManager
-                        .authenticate(new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()))
+                        .authenticate(new UsernamePasswordAuthenticationToken(login.getEmailId(), login.getPassword()))
                         .map(this.tokenProvider::createToken))
                 .map(jwt -> {
                     HttpHeaders httpHeaders = new HttpHeaders();
