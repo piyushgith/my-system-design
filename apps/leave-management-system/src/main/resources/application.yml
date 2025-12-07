@@ -33,5 +33,5 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     web: INFO
-    org.springframework.security: INFO
+    org.springframework.security: DEBUG
     com.java.leave.management.system: DEBUG

@@ -1,9 +1,11 @@
 package com.java.leave.management.system.dto;
 
+import com.java.leave.management.system.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,4 +21,5 @@ public class UsersDto {
     private String email;
     private boolean active = true;
     private List<String> roles = new ArrayList<>();
+
 }

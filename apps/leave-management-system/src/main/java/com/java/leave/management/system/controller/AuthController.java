@@ -4,7 +4,10 @@ import com.java.leave.management.system.dto.ApiResponse;
 import com.java.leave.management.system.dto.EmployeeDto;
 import com.java.leave.management.system.dto.LoginRequest;
 import com.java.leave.management.system.dto.UsersDto;
+import com.java.leave.management.system.repository.UserRepository;
 import com.java.leave.management.system.security.JwtTokenProvider;
+import com.java.leave.management.system.service.UserService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -29,6 +33,9 @@ public class AuthController {
 
     private final ReactiveAuthenticationManager authenticationManager;
 
+    private final UserService userService;
+
+
     @GetMapping("/health")
     public Mono<ResponseEntity<String>> healthCheck() {
         return Mono.just(ResponseEntity.ok("Employee Leave Management Service is up and running"));
@@ -38,7 +45,7 @@ public class AuthController {
     public Mono<ResponseEntity> login(@Valid @RequestBody Mono<LoginRequest> authRequest) {
         return authRequest
                 .flatMap(login -> this.authenticationManager
-                        .authenticate(new UsernamePasswordAuthenticationToken(login.getEmailId(), login.getPassword()))
+                        .authenticate(new UsernamePasswordAuthenticationToken(login.getUserName(), login.getPassword()))
                         .map(this.tokenProvider::createToken))
                 .map(jwt -> {
                     HttpHeaders httpHeaders = new HttpHeaders();
@@ -48,16 +55,17 @@ public class AuthController {
                 });
     }
 
-/*    @PostMapping("/login")
-    public Mono<ResponseEntity<ApiResponse<String>>> login() {
-        // Placeholder implementation
-        return Mono.just(ResponseEntity.ok(ApiResponse.success("Login successful", "JWT_TOKEN_PLACEHOLDER")));
-    }*/
-
     @PostMapping("/register")
     public Mono<ResponseEntity<ApiResponse<UsersDto>>> register(@RequestBody Mono<UsersDto> userDtoMono) {
-        // Placeholder implementation
-        return Mono.just(ResponseEntity.ok(ApiResponse.success("Registration successful", null)));
+        return userDtoMono
+                .flatMap(userService::createUser)
+                .map(createdUser -> ResponseEntity.ok(
+                        ApiResponse.success("Registration successful", createdUser)
+                ))
+                .onErrorResume(error -> Mono.just(ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Registration failed: " + error.getMessage()))
+                ));
     }
 
 }

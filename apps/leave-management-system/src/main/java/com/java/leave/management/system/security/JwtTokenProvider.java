@@ -9,14 +9,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
 
@@ -54,18 +57,28 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(this.secretKey).build().parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(this.secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
 
         Object authoritiesClaim = claims.get(AUTHORITIES_KEY);
 
-        Collection<? extends GrantedAuthority> authorities = authoritiesClaim == null
-                ? AuthorityUtils.NO_AUTHORITIES
-                : AuthorityUtils.commaSeparatedStringToAuthorityList(authoritiesClaim.toString());
-
+        Collection<? extends GrantedAuthority> authorities;
+        if (authoritiesClaim == null) {
+            authorities = AuthorityUtils.NO_AUTHORITIES;
+        } else {
+            // Split by comma and add ROLE_ prefix to each authority
+            authorities = Arrays.stream(authoritiesClaim.toString().split(","))
+                    .map(String::trim)
+                    .map(role -> new SimpleGrantedAuthority(role))
+                    .collect(Collectors.toList());
+        }
         User principal = new User(claims.getSubject(), "", authorities);
-
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
+
 
     public boolean validateToken(String token) {
         try {

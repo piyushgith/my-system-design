@@ -120,3 +120,6 @@ INSERT INTO audit_logs (leave_request_id, action, performed_by, old_status, new_
 (4, 'APPROVED', 7, 'PENDING', 'APPROVED', 'Request approved by manager Grace Lee'),
 (7, 'CREATED', 1, NULL, 'PENDING', 'Admin leave request created'),
 (7, 'APPROVED', 1, 'PENDING', 'APPROVED', 'Request auto-approved for admin');
+
+
+

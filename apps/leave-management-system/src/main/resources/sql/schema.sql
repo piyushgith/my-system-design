@@ -96,14 +96,28 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 -- 7 . Create the USERS table for authentication and authorization
 CREATE TABLE users (
-    id VARCHAR(255) PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     active BOOLEAN DEFAULT true NOT NULL,
-    roles TEXT[] DEFAULT ARRAY[]::TEXT[] NOT NULL
+    roles TEXT[] DEFAULT ARRAY[]::TEXT[] NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for better query performance
+-- ============= Indexes for Performance =============
+
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
+
+
+-- ====================================================
+-- DROP TABLE IF EXISTS users CASCADE;
+-- DROP TABLE IF EXISTS audit_logs CASCADE;
+-- DROP TABLE IF EXISTS notifications CASCADE;
+-- DROP TABLE IF EXISTS leave_requests CASCADE;
+-- DROP TABLE IF EXISTS leave_balances CASCADE;
+-- DROP TABLE IF EXISTS leave_types CASCADE;
+-- DROP TABLE IF EXISTS employees CASCADE;
+-- ====================================================
