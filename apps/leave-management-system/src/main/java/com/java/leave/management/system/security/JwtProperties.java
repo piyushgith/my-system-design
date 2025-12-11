@@ -13,4 +13,7 @@ public class JwtProperties {
 
     // validity in milliseconds
     private long validityInMs = 3600000; // 1h
+    
+    // refresh token validity in milliseconds
+    private long refreshTokenValidityInMs = 604800000; // 7 days
 }

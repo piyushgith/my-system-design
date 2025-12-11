@@ -19,6 +19,7 @@ public class UsersDto {
     private String username;
     private String password;
     private String email;
+    @Builder.Default
     private boolean active = true;
     private List<String> roles = new ArrayList<>();
 

@@ -92,4 +92,44 @@ public class JwtTokenProvider {
         }
         return false;
     }
+
+    public String createRefreshToken(String username) {
+        Claims claims = Jwts.claims().setSubject(username);
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + this.jwtProperties.getRefreshTokenValidityInMs());
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(this.secretKey, SignatureAlgorithm.HS256).compact();
+    }
+
+    public String getUsernameFromRefreshToken(String refreshToken) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(this.secretKey)
+                    .build()
+                    .parseClaimsJws(refreshToken)
+                    .getBody();
+            return claims.getSubject();
+        } catch (JwtException | IllegalArgumentException e) {
+            log.info("Invalid refresh token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public boolean validateRefreshToken(String refreshToken) {
+        try {
+            Jwts.parserBuilder().setSigningKey(this.secretKey).build().parseClaimsJws(refreshToken);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.info("Invalid refresh token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public long getAccessTokenExpiryTime() {
+        return this.jwtProperties.getValidityInMs();
+    }
 }
