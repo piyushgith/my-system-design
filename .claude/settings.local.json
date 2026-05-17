@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"d:\\\\github\\\\my-system-design\")",
+      "Bash(dir \"d:\\\\github\\\\my-system-design\\\\design-md-files\")"
+    ]
+  }
+}
