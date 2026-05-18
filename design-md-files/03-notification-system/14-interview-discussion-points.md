@@ -4,7 +4,7 @@
 
 ## Objective
 
-This document prepares you for a FAANG-level system design interview on the Notification System. It contains the most likely follow-up questions, expected answers, tradeoff discussions, common candidate mistakes, and the differentiating points that separate senior from staff-level responses.
+This document prepares you for a candidate's system design interview on the Notification System. It contains the most likely follow-up questions, expected answers, tradeoff discussions, common candidate mistakes, and the differentiating points that separate senior from staff-level responses.
 
 ---
 
@@ -219,7 +219,7 @@ Before being asked: "One thing I'd want to design carefully is what happens when
 
 ### Discuss the "What Breaks First" Progression
 
-Show awareness of scaling inflection points (see Part 2 above). Interviewers at FAANG level want to see that you've thought beyond the current scale.
+Show awareness of scaling inflection points (see Part 2 above). Interviewers at Taking level want to see that you've thought beyond the current scale.
 
 ### Compliance Awareness
 

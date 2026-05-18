@@ -4,13 +4,13 @@
 
 ## Objective
 
-Prepare for FAANG-level system design interviews by anticipating every follow-up question, tradeoff discussion, and deep-dive a senior or staff engineer interviewer will probe. This is the document to review the night before an interview.
+Prepare for candidate's system design interviews by anticipating every follow-up question, tradeoff discussion, and deep-dive a senior or staff engineer interviewer will probe. This is the document to review the night before an interview.
 
 ---
 
 ## The Core Interview Flow
 
-A FAANG interviewer follows a predictable pattern for chat:
+A Taking interviewer follows a predictable pattern for chat:
 
 ```
 1. Requirements clarification (5 min)
@@ -179,7 +179,7 @@ Fallback: `SELECT MAX(sequence_num) FROM messages WHERE conv_id = ? AND time_buc
 
 ### "What would you do differently if you had 5 engineers vs 500?"
 
-| 5 Engineers (Startup) | 500 Engineers (FAANG) |
+| 5 Engineers (Startup) | 500 Engineers (Taking) |
 |----------------------|----------------------|
 | Single Spring Boot app | 10+ microservices |
 | PostgreSQL for everything | Cassandra + PostgreSQL + Redis |

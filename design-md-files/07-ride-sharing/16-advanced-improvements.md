@@ -186,7 +186,7 @@ Static incentives ("complete 10 rides → earn bonus") are inefficient. Some dri
 | Matching throughput | ~10K concurrent matching sessions | More pods (KEDA), optimize Redis GEO query |
 | Kafka throughput | ~1M msg/s per cluster | Increase partitions, add brokers |
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 - "Your driver lock uses Redis NX — what happens if the lock is set but the matching service crashes before creating the trip?" → Implement a TTL (30s) on the lock. Background job detects trips that were MATCHED but never transitioned to DRIVER_ACCEPTED within TTL → release lock, retry matching.
 - "How do you handle a driver who accepts a ride but doesn't move toward the rider?" → ETA watchdog: if driver GPS shows no movement toward rider for 2 min after acceptance → automated nudge. 3 min → alert rider + offer cancellation with no fee. 5 min → auto-cancel, flag driver.
 - "Your surge pricing re-calculates every 60 seconds. What if demand spikes in under 60 seconds?" → Sub-zone real-time triggers: if request rate in a zone exceeds 3× baseline within 10 seconds → immediate surge activation regardless of 60s cycle. Coarse surge on fast path, fine-grained on 60s cycle.

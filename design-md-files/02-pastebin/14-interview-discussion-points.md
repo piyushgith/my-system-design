@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for every angle a FAANG interviewer might probe. Cover foundational questions, tradeoff deep-dives, scaling evolution, failure analysis, and staff-level architectural thinking.
+Prepare for every angle a Taking interviewer might probe. Cover foundational questions, tradeoff deep-dives, scaling evolution, failure analysis, and staff-level architectural thinking.
 
 ---
 

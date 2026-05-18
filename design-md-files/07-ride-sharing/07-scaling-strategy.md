@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define the horizontal and vertical scaling strategies for each component of the ride-sharing platform. Address the specific scaling challenges of location ingestion, geospatial index partitioning, matching algorithm under high load, WebSocket connection management, surge pricing, and multi-region deployment. Distinguish startup vs. FAANG-scale evolution.
+Define the horizontal and vertical scaling strategies for each component of the ride-sharing platform. Address the specific scaling challenges of location ingestion, geospatial index partitioning, matching algorithm under high load, WebSocket connection management, surge pricing, and multi-region deployment. Distinguish startup vs. Taking-scale evolution.
 
 ---
 
@@ -304,7 +304,7 @@ graph TB
 - Read replicas for analytics queries
 - PgBouncer with aggressive pooling (transaction mode)
 
-**Phase 3 (50M+ daily trips, FAANG scale):**
+**Phase 3 (50M+ daily trips, Taking scale):**
 - Horizontal sharding via Citus extension
 - Shard key: city_id
 - Each shard group (set of Citus workers) owns a set of cities

@@ -259,9 +259,9 @@ API key management (CRUD, revocation, tier management) is a business concern. JW
 
 ---
 
-## Startup vs. FAANG Differences
+## Startup vs. Taking Differences
 
-| Dimension | Startup | FAANG |
+| Dimension | Startup | Taking |
 |---|---|---|
 | Context count | 1–2 (gateway + minimal config) | 5+ with separate teams per context |
 | Config Management | YAML files in Git + CI/CD redeploy | Dedicated control plane with approval workflows |

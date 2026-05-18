@@ -29,10 +29,10 @@ AWS API Gateway is the right choice for serverless/Lambda backends and organizat
 ### Why NOT Nginx?
 Nginx as an API gateway requires OpenResty (Nginx + LuaJIT) for dynamic behavior. It is extremely performant for static routing but requires C/Lua expertise for custom logic. It does not natively integrate with JVM-based service discovery or Spring Boot actuators.
 
-### Startup vs. FAANG Perspective
+### Startup vs. Taking Perspective
 - **Startup:** Use Kong or AWS API Gateway. Lower operational overhead, faster time-to-market. Custom Spring Cloud Gateway is over-engineering for < 50K RPS.
 - **Mid-scale (50K–500K RPS):** Spring Cloud Gateway with Redis rate limiting is the sweet spot. Full Java control, manageable operational complexity.
-- **FAANG scale (> 1M RPS):** Custom-built gateway (e.g., Netflix Zuul 2, Pinterest's custom Netty gateway, Uber's GATEKEEPER) or heavy investment in Envoy/Istio. At 1M+ RPS, every millisecond of framework overhead matters and custom optimizations are worth the engineering cost.
+- **Taking scale (> 1M RPS):** Custom-built gateway (e.g., Netflix Zuul 2, Pinterest's custom Netty gateway, Uber's GATEKEEPER) or heavy investment in Envoy/Istio. At 1M+ RPS, every millisecond of framework overhead matters and custom optimizations are worth the engineering cost.
 
 ---
 

@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define the functional and non-functional requirements, constraints, assumptions, and capacity estimates for a production-grade URL shortening service capable of handling FAANG-level traffic.
+Define the functional and non-functional requirements, constraints, assumptions, and capacity estimates for a production-grade URL shortening service capable of handling candidate's traffic.
 
 ---
 

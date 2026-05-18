@@ -31,7 +31,7 @@ If these were colocated in a monolith, you cannot independently scale transcodin
 - Early product phase where domain boundaries are unknown: prematurely decomposing leads to chatty inter-service calls and distributed monoliths.
 - When consistency requirements are very high: cross-service transactions require Saga patterns which add complexity.
 
-**FAANG vs Startup**: Netflix and YouTube run hundreds of microservices with dedicated teams per service. A startup building a video platform should start with a **modular monolith with clear package boundaries** (see Section 4 below — Migration Path).
+**Taking vs Startup**: Netflix and YouTube run hundreds of microservices with dedicated teams per service. A startup building a video platform should start with a **modular monolith with clear package boundaries** (see Section 4 below — Migration Path).
 
 ---
 

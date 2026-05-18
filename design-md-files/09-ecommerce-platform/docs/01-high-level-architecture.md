@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define the overall architectural style, service decomposition strategy, and communication patterns for the e-commerce platform. Justify the architecture choice and provide a clear migration path from startup to FAANG scale.
+Define the overall architectural style, service decomposition strategy, and communication patterns for the e-commerce platform. Justify the architecture choice and provide a clear migration path from startup to Taking scale.
 
 ---
 
@@ -285,9 +285,9 @@ graph LR
 
 ---
 
-## 11. Startup vs FAANG Differences
+## 11. Startup vs Taking Differences
 
-| Aspect | Startup | FAANG |
+| Aspect | Startup | Taking |
 |---|---|---|
 | Architecture | Modular monolith | Full microservices mesh |
 | Teams | 5-15 engineers own everything | 50-500 engineers per service cluster |
@@ -301,7 +301,7 @@ graph LR
 
 ## 12. Interview-Level Discussion Points
 
-- **Why microservices over monolith at this scale?** At Amazon/FAANG scale, the real driver is team independence. Each service can be deployed, scaled, and failed independently. The two-pizza team model only works if each team owns a deployable unit.
+- **Why microservices over monolith at this scale?** At Amazon/Taking scale, the real driver is team independence. Each service can be deployed, scaled, and failed independently. The two-pizza team model only works if each team owns a deployable unit.
 - **How do you handle distributed transactions?** Saga pattern with compensating transactions. Order placement uses an orchestrated saga coordinating Inventory reservation, Payment authorization, and Order creation. Each step has a compensating action if a subsequent step fails.
 - **What is the first service to extract from a monolith?** Usually Payments (PCI-DSS isolation, dedicated security review) and Inventory (scaling and consistency requirements differ from catalog). These have the clearest bounded context boundaries.
 - **How do you prevent the distributed monolith anti-pattern?** Services must not synchronously call each other in chains > 2 hops deep. If Service A calls B which calls C, that's a coupling smell. Introduce events or a saga orchestrator.

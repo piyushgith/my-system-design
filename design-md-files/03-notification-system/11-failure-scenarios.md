@@ -4,7 +4,7 @@
 
 ## Objective
 
-Analyze all meaningful failure scenarios in the Notification System, their blast radius, detection mechanisms, mitigation strategies, and the behavior of the system under each failure condition. This section is critical for production readiness and FAANG-level interview discussions.
+Analyze all meaningful failure scenarios in the Notification System, their blast radius, detection mechanisms, mitigation strategies, and the behavior of the system under each failure condition. This section is critical for production readiness and candidate's interview discussions.
 
 ---
 

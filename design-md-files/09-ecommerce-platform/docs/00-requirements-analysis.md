@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define the functional and non-functional requirements for a production-grade, FAANG-scale e-commerce platform. Establish capacity estimates, traffic assumptions, and design constraints that will govern every architectural decision downstream.
+Define the functional and non-functional requirements for a production-grade, Taking-scale e-commerce platform. Establish capacity estimates, traffic assumptions, and design constraints that will govern every architectural decision downstream.
 
 ---
 
@@ -255,4 +255,4 @@ The platform must handle Black Friday-scale traffic spikes, support a seller/mar
 - **How do you handle Black Friday traffic spikes?** Pre-scaling via scheduled autoscaling, load shedding for non-critical paths, circuit breakers on downstream dependencies, feature flags to disable expensive features (recommendations, personalization) under extreme load.
 - **What is the biggest scaling challenge?** Inventory during flash sales: hundreds of thousands of users hitting a single SKU's inventory record simultaneously. Standard DB transactions will collapse — requires Redis-based distributed counters with eventual DB reconciliation.
 - **How do you prevent overselling?** Reservation model: Redis atomic DECR for soft reservation, transactional DB write for hard reservation on order placement. If Redis and DB diverge, reconciliation job corrects within seconds.
-- **Startup vs FAANG difference:** A startup would start with a monolith, a single Postgres DB, and Stripe. FAANG has dedicated teams per domain, separate data stores per service, petabytes of ML training data for personalization. The architecture gap is driven by team size and traffic, not technical preference.
+- **Startup vs Taking difference:** A startup would start with a monolith, a single Postgres DB, and Stripe. Taking has dedicated teams per domain, separate data stores per service, petabytes of ML training data for personalization. The architecture gap is driven by team size and traffic, not technical preference.

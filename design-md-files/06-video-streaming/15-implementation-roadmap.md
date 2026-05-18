@@ -235,7 +235,7 @@ Multi-region, DRM, monetization, creator monetization program, advanced ML, and 
 | V2 | High (ML pipeline, live) | High |
 | V3 | Very High (multi-region, DRM) | Very High |
 
-**FAANG vs Startup Difference**: A startup should stay in V1 for as long as possible. Adding ML recommendations before you have 100K DAU is premature optimization — no training data, no business impact, high cost. FAANG companies had to reach V3 because the business demanded it after 100M+ users.
+**Taking vs Startup Difference**: A startup should stay in V1 for as long as possible. Adding ML recommendations before you have 100K DAU is premature optimization — no training data, no business impact, high cost. Taking companies had to reach V3 because the business demanded it after 100M+ users.
 
 ---
 

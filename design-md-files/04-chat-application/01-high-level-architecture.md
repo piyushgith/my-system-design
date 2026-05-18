@@ -4,7 +4,7 @@
 
 ## Objective
 
-Select the correct architectural style for a real-time messaging platform, justify every major design decision, and provide full component diagrams, request flows, and an evolution path from MVP to FAANG scale.
+Select the correct architectural style for a real-time messaging platform, justify every major design decision, and provide full component diagrams, request flows, and an evolution path from MVP to Taking scale.
 
 ---
 

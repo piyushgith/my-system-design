@@ -4,7 +4,7 @@
 
 ## Objective
 
-Critique the designed architecture honestly, identify weaknesses, scaling limits, tech debt risks, and what a FAANG interviewer would challenge. Then propose advanced improvements for the next evolution.
+Critique the designed architecture honestly, identify weaknesses, scaling limits, tech debt risks, and what a Taking interviewer would challenge. Then propose advanced improvements for the next evolution.
 
 ---
 
@@ -29,7 +29,7 @@ Critique the designed architecture honestly, identify weaknesses, scaling limits
 
 **The problem**: Adding Kafka + ClickHouse in V1 is significant operational overhead. A 2-person team spending 40% of their time managing Kafka/ClickHouse is wasted if you only have 1M clicks/day (well within PostgreSQL's capability).
 
-**What a FAANG interviewer would say**: "You've over-engineered the analytics for early stage. What would you have done for a startup?"
+**What a Taking interviewer would say**: "You've over-engineered the analytics for early stage. What would you have done for a startup?"
 
 **Better V1 approach**:
 - Write click events to a separate PostgreSQL table (append-only, no updates)
@@ -166,11 +166,11 @@ Architecture:
 
 Convert Snowflake ID to Base62 = ~8-9 characters. No collision possible. No DB roundtrip for uniqueness check.
 
-**Why not done by default**: 8+ character codes are longer than 6-character random codes. The aesthetic tradeoff (shorter code) outweighs the operational simplicity of Snowflake at the scale we're designing for. Snowflake makes sense at FAANG scale where collision retry frequency would be non-trivial.
+**Why not done by default**: 8+ character codes are longer than 6-character random codes. The aesthetic tradeoff (shorter code) outweighs the operational simplicity of Snowflake at the scale we're designing for. Snowflake makes sense at Taking scale where collision retry frequency would be non-trivial.
 
 ---
 
-## What a FAANG Interviewer Would Challenge
+## What a Taking Interviewer Would Challenge
 
 | Challenge | Strong Response |
 |---|---|
@@ -221,4 +221,4 @@ Convert Snowflake ID to Base62 = ~8-9 characters. No collision possible. No DB r
 | Cost Efficiency | 7/10 | Multi-region + ClickHouse cluster is expensive for low traffic |
 | Interview Readiness | 10/10 | Deep tradeoff analysis, bottleneck reasoning, evolution path |
 
-**Overall**: This is a well-designed system for a growth-stage company (1M–100M users). For a startup, the analytics pipeline is over-engineered. For FAANG-scale (1B+ redirects/day), edge compute and multi-region active-active writes are the next evolution.
+**Overall**: This is a well-designed system for a growth-stage company (1M–100M users). For a startup, the analytics pipeline is over-engineered. For Taking-scale (1B+ redirects/day), edge compute and multi-region active-active writes are the next evolution.

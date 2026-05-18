@@ -354,7 +354,7 @@ Kafka → Flink or Spark Streaming → ClickHouse
 | Single Cassandra cluster per region | "What if Cassandra itself has a hot-spot?" | time_bucket partitioning prevents unbounded hot partitions. Cassandra's consistent hashing distributes partitions across nodes. Operational monitoring: `nodetool cfstats` for partition size alerts. |
 | PostgreSQL for conversation metadata | "PostgreSQL won't scale to 1B conversations" | True — but this is Phase 4 problem. Sharding `conversations` by `conversation_id % N` is straightforward. Until then, PostgreSQL with proper indexing scales to hundreds of millions of rows. |
 
-### What a FAANG Interviewer Will Specifically Push On
+### What a Taking Interviewer Will Specifically Push On
 
 1. **"Walk me through what happens when Alice sends a message to a 1,000-member group step by step."** — They want to hear Fan-Out, Connection Registry, Redis Pub/Sub, Offline Notification, delivery receipts as summary vs. individual.
 

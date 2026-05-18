@@ -286,7 +286,7 @@ sequenceDiagram
 
 **Key Design Point**: The fan-out is accomplished via Kafka itself. The Notification Orchestrator produces 100M messages (in batches) to the `notification.fanout` topic. 1000 parallel consumer workers each process ~100K messages. At 1000 workers processing 1000 notifications/second each = 1M notifications/second. 100M notifications delivered in ~100 seconds.
 
-**FAANG Reality**: YouTube has a "lazy fan-out" model — notifications are not pushed to all subscribers immediately. High-subscriber creators use a "pull on demand" approach where the notification is written to a shared store and pulled when the subscriber opens the app.
+**Taking Reality**: YouTube has a "lazy fan-out" model — notifications are not pushed to all subscribers immediately. High-subscriber creators use a "pull on demand" approach where the notification is written to a shared store and pulled when the subscriber opens the app.
 
 ---
 

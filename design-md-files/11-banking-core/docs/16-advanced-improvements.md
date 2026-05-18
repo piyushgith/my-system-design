@@ -285,7 +285,7 @@ Risk: this is the highest-risk technology project a bank can undertake
 3. **Monolith grows beyond manageable size**: extract first module when module cohesion breaks down (foreign keys between modules, excessive shared code)
 4. **Hardcoded AML rules**: regulatory rules change; hardcoded = deployment for every rule update; move to rules engine early
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 
 - *"Your double-entry check runs every 1 minute — doesn't that slow down Postgres?"* → Run against read replica; non-blocking aggregate query; at large scale, move to streaming (Kafka Streams running imbalance check in real-time)
 - *"How do you handle Aadhaar OTP verification without storing Aadhaar?"* → Aadhaar OTP API (UIDAI): submit Aadhaar number, receive OTP on registered mobile, verify OTP — all via UIDAI API. We store nothing except the verified result (KYC_VERIFIED = true) and masked last 4 digits.

@@ -272,4 +272,4 @@ Implication: aggressive caching on the read path is non-negotiable.
 - How does eventual consistency affect view counts? (Eventual is acceptable — a count off by a few thousand for a viral video is invisible to users; strong consistency would require distributed locking and destroy throughput)
 - What is the implication of 10M concurrent viewers at 2.5 Mbps? (25 Tbps — no single origin can serve this; CDN is architecturally mandatory, not optional)
 - Why is idempotency critical for uploads? (Network failures during 256 GB uploads are common; without idempotency, retries cause duplicates or data corruption)
-- What is the FAANG vs startup difference here? (A startup would start with a single-region modular monolith with S3 + a SaaS transcoding service like Mux. FAANG builds everything in-house for cost efficiency at scale)
+- What is the Taking vs startup difference here? (A startup would start with a single-region modular monolith with S3 + a SaaS transcoding service like Mux. Taking builds everything in-house for cost efficiency at scale)

@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for FAANG-level system design interview discussions — covering common interviewer follow-ups, tradeoff deep dives, scaling evolution questions, and staff/principal engineer discussion points.
+Prepare for candidate's system design interview discussions — covering common interviewer follow-ups, tradeoff deep dives, scaling evolution questions, and staff/principal engineer discussion points.
 
 ---
 
@@ -36,7 +36,7 @@ Prepare for FAANG-level system design interview discussions — covering common 
 
 > Redis becomes the bottleneck first. At 10x RPS (100K redirects/sec), Redis handles ~90% of requests (cache hits). A single Redis node handles ~100K operations/sec — we're at the limit. Solutions in order: (1) Add Redis read replicas (read distribution), (2) Local Caffeine cache (eliminate network hop for hot URLs), (3) Redis Cluster (horizontal sharding). Second bottleneck: Postgres connection pool (PgBouncer absorbs this). Third: Kafka (can handle 10M+ events/sec — not the bottleneck here).
 
-**Q: How would you design for 100x traffic (FAANG-scale)?**
+**Q: How would you design for 100x traffic (Taking-scale)?**
 
 > Multi-region active-active with CDN at the core. CDN handles 80% of redirects from edge nodes globally (cache hit rate target: 80%). Remaining 20% served from nearest regional cluster (3 regions: US, EU, AP). Each region has: local Redis cluster, local Postgres read replica, local Kafka cluster. URL creation still writes to a single global primary (accepting replication lag of < 1s). For truly extreme scale: CloudFront Functions or Lambda@Edge for zero-latency redirects (edge compute, no origin hit for cached URLs).
 
@@ -46,7 +46,7 @@ Prepare for FAANG-level system design interview discussions — covering common 
 
 **Q: How do you scale the analytics pipeline?**
 
-> Analytics is decoupled via Kafka — it doesn't affect redirect latency. Kafka scales to 10M+ events/sec. ClickHouse scales horizontally (distributed tables across multiple nodes). Consumer pods scale via KEDA based on Kafka consumer lag. The bottleneck in analytics is usually ClickHouse write throughput — mitigate with large batched inserts (10K rows per INSERT). For FAANG-scale analytics (1B clicks/day = 11K events/sec), ClickHouse cluster with 3 shards × 2 replicas is sufficient.
+> Analytics is decoupled via Kafka — it doesn't affect redirect latency. Kafka scales to 10M+ events/sec. ClickHouse scales horizontally (distributed tables across multiple nodes). Consumer pods scale via KEDA based on Kafka consumer lag. The bottleneck in analytics is usually ClickHouse write throughput — mitigate with large batched inserts (10K rows per INSERT). For Taking-scale analytics (1B clicks/day = 11K events/sec), ClickHouse cluster with 3 shards × 2 replicas is sufficient.
 
 ---
 

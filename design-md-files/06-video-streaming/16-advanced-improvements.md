@@ -213,7 +213,7 @@ YouTube discovered that thumbnail is the #1 factor in whether a viewer clicks a 
 | Transcode GPU pool | Cost-limited | Spot GPUs + reserved instances for baseline |
 | S3 storage | Effectively unlimited | Cost — implement tiered storage (S3 → Glacier for old content) |
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 
 - "Your transcode pipeline has a single Kafka topic — what happens when 10 viral videos are uploaded simultaneously and all jobs are the same priority?" → Priority queues, separate topics per tier.
 - "How do you guarantee a takedown propagates globally in < 1 minute?" → CDN signed token invalidation, not just cache purge.

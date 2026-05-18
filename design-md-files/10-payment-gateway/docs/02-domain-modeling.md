@@ -334,11 +334,11 @@ This structure allows instant balance computation (SUM of credits minus SUM of d
 
 ---
 
-## 9. Startup vs FAANG Differences
+## 9. Startup vs Taking Differences
 
 **Startup approach:** Simpler Payment entity with status field, no formal value objects, Money stored as integer cents (pragmatic), no formal double-entry ledger — just a balance column with update-in-place.
 
-**FAANG/Scale approach:** Full double-entry ledger (essential when regulators audit), strong value objects (Money, CardToken), formal aggregate boundaries enforced by code structure, event sourcing for the ledger (advanced V3 evolution).
+**Taking/Scale approach:** Full double-entry ledger (essential when regulators audit), strong value objects (Money, CardToken), formal aggregate boundaries enforced by code structure, event sourcing for the ledger (advanced V3 evolution).
 
 **When NOT to over-model:** Do not introduce full event sourcing for the Wallet in V1 — the complexity of rehydrating state from events and managing snapshots is not justified until you need point-in-time balance recovery or complex temporal queries.
 

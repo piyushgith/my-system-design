@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for FAANG-level system design interview discussion on the e-commerce platform. Covers expected follow-up questions, tradeoff discussions, scaling evolution, common mistakes, and senior/staff engineer talking points.
+Prepare for candidate's system design interview discussion on the e-commerce platform. Covers expected follow-up questions, tradeoff discussions, scaling evolution, common mistakes, and senior/staff engineer talking points.
 
 ---
 
@@ -34,7 +34,7 @@ Strong answer:
 Strong answer:
 > DDD bounded contexts. Catalog (product data), Orders (order lifecycle), Inventory (stock management), Payments (financial transactions), Notifications (async comms), Search (read-optimized). Each context has its own data model. Cross-context calls via REST or events, never direct DB joins.
 
-**Q: How would you evolve the architecture from startup to FAANG?**
+**Q: How would you evolve the architecture from startup to Taking?**
 
 Strong answer (with phases):
 > Phase 1: Modular monolith + Postgres + Redis. Phase 2: Extract payments service (compliance boundary). Phase 3: Extract search service (scaling boundary — Elasticsearch). Phase 4: Extract inventory service (flash sale scaling). Phase 5: Multi-region active-passive. Phase 6: CQRS for order reads. Each extraction is driven by a specific problem, not anticipation.

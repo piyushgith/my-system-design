@@ -270,7 +270,7 @@ Analytics dashboard queries hit this materialized view — not the raw event tab
 **PostgreSQL `short_urls` table** — partition by:
 - **Not needed at V1**: At 5M URLs/day × 365 days × 2 years = ~3.6B rows, single-table B-Tree on `short_code` still performs well (log₂(3.6B) ≈ 32 comparisons)
 - **V2**: If analytics-per-URL data is co-located, range partition by `created_at` month
-- **At FAANG scale (billions/year)**: Hash partition by `short_code` for even distribution
+- **At Taking scale (billions/year)**: Hash partition by `short_code` for even distribution
 
 ---
 

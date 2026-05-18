@@ -365,7 +365,7 @@ At 5M customers and 8M accounts, PostgreSQL handles this comfortably on a single
 - At this scale: shard by `account_id % N` — ensures all journal entries for an account are co-located
 - Migration path: Citus extension for PostgreSQL distributed tables, or migrate to CockroachDB
 
-**The FAANG reality**: JPMorgan's ledger shards by account range with ~200 shards. They also use custom hardware. A mid-size bank should not replicate this — it adds enormous operational complexity for a problem they won't face for years.
+**The Taking reality**: JPMorgan's ledger shards by account range with ~200 shards. They also use custom hardware. A mid-size bank should not replicate this — it adds enormous operational complexity for a problem they won't face for years.
 
 ---
 

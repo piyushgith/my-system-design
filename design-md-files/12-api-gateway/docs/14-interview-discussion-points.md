@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for FAANG/senior backend interview discussions on API gateway design — covering the hard problems: traffic management, auth at scale, circuit breaking, rate limiting correctness, service mesh vs gateway, and when NOT to use a gateway.
+Prepare for Taking/senior backend interview discussions on API gateway design — covering the hard problems: traffic management, auth at scale, circuit breaking, rate limiting correctness, service mesh vs gateway, and when NOT to use a gateway.
 
 ---
 
@@ -44,7 +44,7 @@ Shallow answer: "Use Redis to count requests per user."
 
 > Key implementation detail: circuit state is per gateway pod (not centralized). Different pods may have different circuit states. This is acceptable — eventual convergence. The cost of centralized circuit state (Redis round trip per request) is too high.
 
-> At FAANG scale: service mesh (Envoy/Istio) handles circuit breaking at sidecar level — more accurate because it's at the instance level, not the gateway level.
+> At Taking scale: service mesh (Envoy/Istio) handles circuit breaking at sidecar level — more accurate because it's at the instance level, not the gateway level.
 
 ### Q: How do you handle authentication for 50 microservices?
 
@@ -77,7 +77,7 @@ Shallow answer: "Use Redis to count requests per user."
 
 > Service Mesh (Istio/Envoy): east-west traffic (service → service). Handles: mTLS between services, service discovery, circuit breaking, retries, observability. Optimized for: secure, reliable inter-service communication.
 
-> Together: gateway at the edge (external auth, routing), service mesh internally (mTLS, traffic management). This is the standard architecture at FAANG scale.
+> Together: gateway at the edge (external auth, routing), service mesh internally (mTLS, traffic management). This is the standard architecture at Taking scale.
 
 > When only gateway, no service mesh: startup/scale-up phase. Service mesh adds operational complexity (Istio has steep learning curve). Add service mesh when: microservices count > 10, security requires mTLS everywhere, traffic management per service instance needed.
 
@@ -239,7 +239,7 @@ Who can add custom filters?
 |---|---|
 | Spring Cloud Gateway throughput | ~50K RPS per pod (JVM, low filter count) |
 | Kong throughput | ~100K+ RPS per node (Nginx-based) |
-| Envoy throughput | ~1M+ RPS per instance (C++, used by FAANG) |
+| Envoy throughput | ~1M+ RPS per instance (C++, used by Taking) |
 | Redis ZADD latency | 0.1ms (local network) |
 | RSA signature verification (2048-bit) | 0.5-2ms CPU |
 | JWT cache hit rate (typical) | 90-95% |
@@ -251,7 +251,7 @@ Who can add custom filters?
 ## Interview Tips (API Gateway-Specific)
 
 1. **Establish scale early** — 1K vs 1M RPS changes whether you use Spring Cloud Gateway vs Kong vs Envoy
-2. **Distinguish north-south vs east-west** — gateway for external; service mesh for internal; both for FAANG
+2. **Distinguish north-south vs east-west** — gateway for external; service mesh for internal; both for Taking
 3. **Know the 3 rate limit algorithms** — fixed window, sliding window, token bucket; know when each fits
 4. **Circuit breaker states** — CLOSED/OPEN/HALF_OPEN; know transition conditions; know why per-pod is acceptable
 5. **Auth header propagation** — validate once at gateway, propagate as trusted headers; no re-validation in services

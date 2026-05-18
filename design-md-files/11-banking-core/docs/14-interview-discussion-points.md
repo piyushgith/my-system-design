@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for FAANG/fintech interview discussions on banking core system design — covering the hardest problems: regulatory compliance, maker-checker patterns, audit systems, distributed transaction handling, and the tradeoffs unique to financial institutions.
+Prepare for Taking/fintech interview discussions on banking core system design — covering the hardest problems: regulatory compliance, maker-checker patterns, audit systems, distributed transaction handling, and the tradeoffs unique to financial institutions.
 
 ---
 

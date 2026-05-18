@@ -366,11 +366,11 @@ Moderation needs to screen video content. It receives the `VideoPublished` event
 
 ---
 
-## 7. FAANG vs Startup Differences
+## 7. Taking vs Startup Differences
 
 **Startup approach**: A startup would likely implement all contexts within a single Spring Boot application with package-level separation, using direct method calls instead of Kafka. The "bounded contexts" exist as conceptual boundaries in the code, not physical service boundaries. This is appropriate and correct for early-stage.
 
-**FAANG approach**: Each bounded context is a separate microservice with its own deployment pipeline, schema, and team. The event contracts are governed by a schema registry. Each team can deploy independently. The ACLs are implemented as separate adapter services.
+**Taking approach**: Each bounded context is a separate microservice with its own deployment pipeline, schema, and team. The event contracts are governed by a schema registry. Each team can deploy independently. The ACLs are implemented as separate adapter services.
 
 **The trap**: Prematurely extracting bounded contexts into microservices adds enormous operational overhead before you have the team size to justify it. Netflix reportedly has 700+ microservices. That works with 3,000 engineers, not with 30.
 

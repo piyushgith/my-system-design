@@ -15,7 +15,7 @@ Define horizontal/vertical scaling, caching layers, load balancing, rate limitin
 | Startup | 1K/day | 50 RPS | Monolith, single Postgres, Redis |
 | Growth | 50K/day | 2,000 RPS | 3 app instances, Postgres primary+replica, Redis cluster |
 | Scale | 500K/day | 20,000 RPS | Domain services, Kafka, ElasticSearch, CDN |
-| FAANG | 5M+/day | 200,000 RPS | Multi-region, active-active, CQRS, sharded DB |
+| Taking | 5M+/day | 200,000 RPS | Multi-region, active-active, CQRS, sharded DB |
 
 ---
 

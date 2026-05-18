@@ -583,7 +583,7 @@ This also maps closely to your Spring Boot CRM/tracking module work.
 
 ---
 
-# Best Questions For FAANG Backend Interviews
+# Best Questions For Taking Backend Interviews
 
 If your target is:
 

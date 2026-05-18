@@ -15,7 +15,7 @@ Define scaling approach for a payment gateway handling high-volume financial tra
 | Startup | 10K/day | 5 TPS | Monolith, single Postgres |
 | Growth | 500K/day | 200 TPS | Separate payment service, Redis, read replicas |
 | Scale | 5M/day | 2,000 TPS | Kafka async, partitioned DB, multi-AZ |
-| FAANG | 100M+/day | 50,000 TPS | Multi-region active-active, sharded ledger |
+| Taking | 100M+/day | 50,000 TPS | Multi-region active-active, sharded ledger |
 
 ---
 
@@ -202,7 +202,7 @@ Payment systems must be available globally with low latency:
 - RTO: < 60s (automatic failover via Route 53)
 - RPO: < 5s (async replication lag)
 
-**Phase 3 (FAANG)**: Active-active multi-region
+**Phase 3 (Taking)**: Active-active multi-region
 - Each region handles local currency transactions
 - Cross-region transfers via specialized reconciliation
 - Extreme complexity — only justified at Stripe/PayPal scale
@@ -237,6 +237,6 @@ Payment systems must be available globally with low latency:
 ## Interview Discussion Points
 
 - **"Why not use NoSQL for the ledger?"** → ACID is mandatory; double-entry requires atomic debit + credit; no NoSQL gives this without distributed transaction complexity worse than Postgres
-- **"How do you scale to 50K TPS?"** → Ledger partitioning + Redis for balance reads + Kafka for downstream decoupling + connection pooling; at true FAANG scale, shard Postgres by account range
+- **"How do you scale to 50K TPS?"** → Ledger partitioning + Redis for balance reads + Kafka for downstream decoupling + connection pooling; at true Taking scale, shard Postgres by account range
 - **"What happens if Redis loses the balance data?"** → Redis AOF persistence limits loss to 1s; reconciliation job rebuilds Redis balance from Postgres ledger entries; slight delay but no permanent data loss
 - **"How do you handle global payments?"** → Active-passive multi-region; writes to primary; local reads from replica; cross-region failover via Route 53

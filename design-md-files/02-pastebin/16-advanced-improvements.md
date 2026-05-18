@@ -245,7 +245,7 @@ This is an async job (paste content may be in S3, needs assembly). Kafka event t
 | Redis memory bound | Cache hit drops if Redis is too small | Solvable by increasing Redis size (linear cost) |
 | No full-text search at launch | Users cannot find old pastes | Only a problem if paste count grows and search is requested |
 
-### What a FAANG Interviewer Will Challenge
+### What a Taking Interviewer Will Challenge
 
 1. **"Your cleanup is eventually consistent — show me the exact sequence where a user sees an expired paste."**
 > User requests expired paste → cache miss → DB query returns paste (is_deleted=FALSE, cleanup not yet processed) → paste served. Cleanup processes within 5 minutes → subsequent requests return 410. This is the eventual consistency window. Acceptable per requirements.

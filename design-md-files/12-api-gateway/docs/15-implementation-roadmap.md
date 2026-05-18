@@ -179,7 +179,7 @@ Low-latency global API platform. Enterprise-grade governance. Advanced traffic m
 
 ---
 
-## Phase 4 — FAANG Scale (Year 2+)
+## Phase 4 — Taking Scale (Year 2+)
 
 ### Goal
 

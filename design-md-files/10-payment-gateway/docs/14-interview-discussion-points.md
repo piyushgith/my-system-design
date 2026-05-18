@@ -4,7 +4,7 @@
 
 ## Objective
 
-Prepare for FAANG/fintech-level system design interviews on payment systems — covering the hardest distributed systems problems (idempotency, double-entry, distributed transactions, consistency) with real-world production depth.
+Prepare for Taking/fintech-level system design interviews on payment systems — covering the hardest distributed systems problems (idempotency, double-entry, distributed transactions, consistency) with real-world production depth.
 
 ---
 
@@ -198,7 +198,7 @@ Knowing what NOT to build is as important as knowing what to build.
 1. **Always mention idempotency first** — it's the #1 correctness requirement; interviewers probe this
 2. **Draw the ledger** — show double-entry: debit source, credit destination
 3. **Distinguish display vs transactional consistency** — show nuance; not everything needs ACID
-4. **Know PCI DSS basics** — tokenization, CDE, SAQ levels; FAANG interviewers expect this
+4. **Know PCI DSS basics** — tokenization, CDE, SAQ levels; Taking interviewers expect this
 5. **Mention reconciliation** — how you detect silent failures; most candidates miss this
 6. **Distinguish wallet vs card gateway** — different risk profiles, different regulations
 7. **Quote real numbers** — RBI T+1 mandate, Visa chargeback threshold; shows operational experience

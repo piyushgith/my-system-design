@@ -103,7 +103,7 @@ Define how every layer of the file storage system scales horizontally and vertic
 - No single Elasticsearch cluster handles 50 TB efficiently.
 - **Sharding**: per-user index (`files_user_{userId_hash_mod_100}`) — 100 index groups.
 - Each group: ~1 TB. 10 ES nodes per group = 10 TB cluster.
-- Total: 100 groups × 10 nodes = 1,000 ES nodes (only needed at 100B files — FAANG scale).
+- Total: 100 groups × 10 nodes = 1,000 ES nodes (only needed at 100B files — Taking scale).
 
 ### Practical MVP/V1 Approach
 - Single ES cluster, 3–5 nodes.
@@ -182,7 +182,7 @@ Lifecycle policy automates tier transitions based on last access timestamp.
 | V1 | 1M DAU | Read replicas, Redis cache, CDN with origin shield |
 | V2 | 10M DAU | ES cluster, Kafka, multiple read replicas, S3 tiering |
 | V3 | 100M DAU | DB partitioning, Redis cluster, Vitess sharding hint |
-| FAANG | 500M DAU | Per-user ES shards, Citus/Vitess, 1,000+ ES nodes |
+| Taking | 500M DAU | Per-user ES shards, Citus/Vitess, 1,000+ ES nodes |
 
 ---
 

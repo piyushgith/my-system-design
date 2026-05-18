@@ -383,7 +383,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 
 ---
 
-## 10. FAANG vs Startup Differences
+## 10. Taking vs Startup Differences
 
 **Startup approach**:
 - Simple Redis cache with standard Cache-Aside pattern
@@ -391,7 +391,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 - TTL-based invalidation only
 - Single Redis instance (no cluster) for the first year
 
-**FAANG approach**:
+**Taking approach**:
 - Multi-layer caching (browser, CDN edge, origin shield, application, local)
 - Custom Redis data structures per use case (HLL, sorted sets, Lua scripts for atomic operations)
 - Active cache warming for high-priority content

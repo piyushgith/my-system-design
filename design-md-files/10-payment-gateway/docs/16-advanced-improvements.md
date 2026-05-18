@@ -282,7 +282,7 @@ Analytics is a competitive differentiator (Stripe Sigma vs basic Razorpay dashbo
 3. **Missing idempotency early**: adding idempotency to high-traffic endpoint requires careful state migration
 4. **Sync-only payment flow**: migrating to async requires careful state machine migration; in-flight payments during migration are dangerous
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 
 - *"How do you handle chargebacks at 1M transactions/day?"* → Automated evidence collection (order data, delivery proof, fraud signals) + machine classification (legitimate dispute vs friendly fraud) + auto-filing with card network
 - *"Your double-entry invariant check runs on Postgres — doesn't that scale poorly?"* → Yes; at scale, move to streaming: Kafka Streams computes running debit/credit totals per window; compare in real-time vs batch

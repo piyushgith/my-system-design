@@ -4,7 +4,7 @@
 
 ## Objective
 
-Document advanced, production-differentiating improvements to the Notification System that go beyond the standard design. These are topics that separate a good system from a great one, and that FAANG-level engineers discuss when designing for 100M+ user platforms.
+Document advanced, production-differentiating improvements to the Notification System that go beyond the standard design. These are topics that separate a good system from a great one, and that candidate's engineers discuss when designing for 100M+ user platforms.
 
 ---
 
@@ -225,7 +225,7 @@ The current design uses a status column on `notification_requests` that is mutat
 - **Template management UI**: not designed here — needs a separate frontend build
 - **Cost at scale**: 50M emails/day at $0.0001 = $5,000/day. ML-based smart channel selection from Improvement 3 is not optional at this scale.
 
-### What a FAANG Interviewer Will Challenge
+### What a Taking Interviewer Will Challenge
 
 1. "Your SLO says p99 transactional delivery < 5 seconds. How do you actually measure this end-to-end?"
    - Answer: OpenTelemetry trace from `notification_accepted_at` to `delivery_confirmed_at` in `delivery_attempts`, aggregated in Prometheus histogram.

@@ -1,7 +1,7 @@
 # 14 — Interview Discussion Points: File Storage System
 
 ## Objective
-Consolidate the hardest interviewer follow-up questions, common mistakes, senior vs staff-level depth, and "what breaks first" analysis for a file storage system design interview. Google Drive and Dropbox are perennial FAANG system design questions — interviewers expect deep thinking on deduplication, chunking, sync, and consistency.
+Consolidate the hardest interviewer follow-up questions, common mistakes, senior vs staff-level depth, and "what breaks first" analysis for a file storage system design interview. Google Drive and Dropbox are perennial Taking system design questions — interviewers expect deep thinking on deduplication, chunking, sync, and consistency.
 
 ---
 

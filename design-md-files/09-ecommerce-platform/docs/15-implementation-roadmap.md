@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define a phased implementation plan from MVP to FAANG-scale, with feature scope, architecture evolution, infrastructure requirements, risks, and team scaling considerations at each phase.
+Define a phased implementation plan from MVP to Taking-scale, with feature scope, architecture evolution, infrastructure requirements, risks, and team scaling considerations at each phase.
 
 ---
 
@@ -231,7 +231,7 @@ Handle viral moments. Compete on product experience. Advanced personalization.
 
 ---
 
-## Phase 4 — FAANG Scale (Year 2+)
+## Phase 4 — Taking Scale (Year 2+)
 
 ### Goal
 
@@ -269,10 +269,10 @@ Global platform. Multi-region active-active. Self-healing infrastructure.
 
 ---
 
-## MVP to FAANG: Architecture Evolution Summary
+## MVP to Taking: Architecture Evolution Summary
 
 ```
-MVP → V1 → V2 → V3 → FAANG
+MVP → V1 → V2 → V3 → Taking
 Monolith → Modular Monolith → Service Extraction → Multi-Region
 Postgres only → + Redis + S3 → + Kafka + ES → + ML + Multi-region → Event Sourcing
 Manual deploy → CI/CD → Kubernetes → Multi-region Kubernetes → Service Mesh
@@ -288,7 +288,7 @@ Manual deploy → CI/CD → Kubernetes → Multi-region Kubernetes → Service M
 | V1 | High | Medium | Low | Low |
 | V2 | Medium | High | Medium | Medium |
 | V3 | Low | High | High | High |
-| FAANG | Low | Very High | Very High | Very High |
+| Taking | Low | Very High | Very High | Very High |
 
 ---
 

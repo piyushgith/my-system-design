@@ -15,7 +15,7 @@ Define the horizontal and vertical scaling approach, caching layers, load balanc
 | Startup | 1M/day | 50 RPS | Single app instance, single Postgres, Redis |
 | Growth | 50M/day | 2,500 RPS | 3 app instances, Postgres primary+replica, Redis cluster |
 | Scale | 500M/day | 10,000 RPS | 10+ app instances, multi-region, CDN, Kafka |
-| FAANG | 5B/day | 100,000 RPS | 100+ instances, global CDN, multi-region active-active |
+| Taking | 5B/day | 100,000 RPS | 100+ instances, global CDN, multi-region active-active |
 
 ---
 
@@ -266,7 +266,7 @@ local now = redis.call('TIME')[1]
 
 ---
 
-## Multi-Region Scaling (FAANG Level)
+## Multi-Region Scaling (Taking Level)
 
 ```mermaid
 graph TB

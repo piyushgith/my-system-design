@@ -218,7 +218,7 @@ When expanding to grocery delivery, restaurant-style "always available" doesn't 
 | Kafka | 1M msg/s | More partitions per topic |
 | PostgreSQL orders | 100K inserts/s with PgBouncer | Vitess sharding by city |
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 - "Your Saga uses Kafka for inter-step communication. What if a step succeeds but the Kafka publish fails?" → Outbox pattern. Every saga state transition is written to PostgreSQL + outbox atomically. Outbox reader guarantees eventual Kafka delivery. The step is not considered complete until the event is in Kafka.
 - "A restaurant accepts an order but then goes offline. The food is being prepared but no delivery partner can reach the restaurant." → Delivery Service GPS shows partner at restaurant location. After 10 min at restaurant with no pickup confirmation → contact restaurant via phone (ops team fallback). After 15 min → cancel order, full refund, flag restaurant for review. Automated retry with different partner if restaurant is reachable.
 - "How do you handle a city-wide delivery partner strike? All partners go offline simultaneously." → Graceful degradation: show riders "High demand — delivery times are longer than usual." Surge pricing activates (incentivize new partners). City ops team escalates. Platform shows honest messaging. Cannot force partners to work — partner model is gig economy.

@@ -86,7 +86,7 @@ POST /v1/uploads
 
 **Idempotency**: The `idempotency_key` field ensures that if the client retries due to a network failure, the same `upload_id` is returned rather than creating a duplicate upload session.
 
-**FAANG Detail**: YouTube and Google Drive use a similar resumable upload protocol. The client uploads chunks directly to S3 using presigned URLs — the Upload Service never proxies the bytes, avoiding bandwidth bottleneck on application servers.
+**Taking Detail**: YouTube and Google Drive use a similar resumable upload protocol. The client uploads chunks directly to S3 using presigned URLs — the Upload Service never proxies the bytes, avoiding bandwidth bottleneck on application servers.
 
 ---
 

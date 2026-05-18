@@ -283,7 +283,7 @@ Advanced front-end improvements with backend implications:
 3. **Missing idempotency**: adding idempotency to existing high-traffic endpoints requires careful migration
 4. **Hardcoded pricing logic**: pricing complexity grows; needs dedicated Pricing Service with rules engine
 
-### FAANG Interviewer Challenges
+### Taking Interviewer Challenges
 
 - *"Redis for inventory is risky — what if Redis loses data?"* → AOF persistence, sync replication, periodic Postgres reconciliation; Redis losing data = stock drift, not orders lost
 - *"Eventual consistency in search means users see wrong stock status"* → Correct; document as acceptable; display shows "limited stock" not exact number; purchase path is always accurate (Redis atomic)

@@ -26,7 +26,7 @@ The API gateway is unique among services:
 | Startup | 500 RPS | Single gateway instance (Kong/Spring Cloud Gateway) |
 | Growth | 10,000 RPS | 3 gateway instances behind ALB |
 | Scale | 100,000 RPS | Gateway cluster, Redis for rate limiting, CDN in front |
-| FAANG | 1M+ RPS | Multi-region, PoP-based, custom L4/L7 proxy |
+| Taking | 1M+ RPS | Multi-region, PoP-based, custom L4/L7 proxy |
 
 ---
 
@@ -199,7 +199,7 @@ Health checks: gateway polls backend `/health` every 5 seconds. Unhealthy instan
 
 ## Multi-Region Gateway
 
-At FAANG scale: API gateway deployed at every region and PoP:
+At Taking scale: API gateway deployed at every region and PoP:
 
 ```
 User in Mumbai → Nearest gateway PoP (Mumbai)

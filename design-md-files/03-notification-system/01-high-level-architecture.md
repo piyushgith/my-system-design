@@ -271,7 +271,7 @@ sequenceDiagram
 
 ---
 
-## Migration Path: Startup → FAANG Scale
+## Migration Path: Startup → Taking Scale
 
 ```
 Phase 1 (MVP):        Single Spring Boot app

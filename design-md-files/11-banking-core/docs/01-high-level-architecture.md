@@ -283,5 +283,5 @@ A: Blue-green deployment on Kubernetes. The new version is deployed alongside th
 **Q: What's the risk of a shared PostgreSQL?**
 A: A poorly optimized query in one module can table-lock or saturate connection pool for others. Mitigations: per-module connection pool limits (HikariCP), separate read replicas for reporting modules, query timeouts enforced at the application level, and schema-level access control to prevent accidental cross-module joins.
 
-**Q: Startup vs FAANG differences?**
-A: A startup with 50K customers would skip maker-checker, AML screening, and SWIFT — ship with IMPS + basic ledger. A FAANG-scale bank (like JPMorgan) would have the core ledger as a microservice with 50+ teams, a dedicated platform team managing shared Kafka, and a financial data mesh for reporting — but they have 10,000 engineers. A mid-size bank should stay modular monolith until pain forces the split.
+**Q: Startup vs Taking differences?**
+A: A startup with 50K customers would skip maker-checker, AML screening, and SWIFT — ship with IMPS + basic ledger. A Taking-scale bank (like JPMorgan) would have the core ledger as a microservice with 50+ teams, a dedicated platform team managing shared Kafka, and a financial data mesh for reporting — but they have 10,000 engineers. A mid-size bank should stay modular monolith until pain forces the split.

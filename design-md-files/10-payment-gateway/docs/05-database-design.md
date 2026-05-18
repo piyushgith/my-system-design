@@ -377,7 +377,7 @@ Same strategy. Merchant dashboard queries filtered by date range hit < 2 partiti
 
 ## 9. Sharding Considerations
 
-At scale beyond 100,000 TPS (FAANG-scale):
+At scale beyond 100,000 TPS (Taking-scale):
 
 - **Shard key for payments:** `merchant_id` — all of a merchant's data in one shard avoids cross-shard joins for settlement.
 - **Shard key for wallets:** `user_id` — P2P transfers between users on different shards require 2-phase commit or Saga.
