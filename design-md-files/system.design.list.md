@@ -1,4 +1,4 @@
-# Beginner → Advanced FAANG-Level System Design Questions
+# Beginner → Advanced System Design Questions
 
 This list is structured intentionally:
 
