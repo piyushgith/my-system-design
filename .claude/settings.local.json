@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(dir \"d:\\\\github\\\\my-system-design\")",
-      "Bash(dir \"d:\\\\github\\\\my-system-design\\\\design-md-files\")"
+      "Bash(dir \"d:\\\\github\\\\my-system-design\\\\design-md-files\")",
+      "Bash(rtk ls *)"
     ]
   }
 }
