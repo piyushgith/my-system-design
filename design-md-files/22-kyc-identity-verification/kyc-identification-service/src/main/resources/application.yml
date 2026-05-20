@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: kyc-identification-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kyc_db
+    username: kyc_user
+    password: kyc_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: kyc-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.test.kyc.identification.*"
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  async:
+    core-pool-size: 5
+    max-pool-size: 20
+    queue-capacity: 100
+
+kyc:
+  encryption:
+    secret-key: "dev-secret-key-must-be-32-chars!!"
+  idempotency:
+    ttl-seconds: 86400
+  vendor:
+    mock: true
+  kafka:
+    topics:
+      outcome: kyc.outcome.decided
+      manual-review: kyc.manual.review.required
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.test.kyc: DEBUG
+    org.springframework.kafka: INFO
