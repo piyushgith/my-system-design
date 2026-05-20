@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: banking-core-postgres
+    environment:
+      POSTGRES_DB: banking_core
+      POSTGRES_USER: banking
+      POSTGRES_PASSWORD: banking
+    ports:
+      - "5432:5432"
+    volumes:
+      - banking_core_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U banking -d banking_core"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  banking_core_pgdata:

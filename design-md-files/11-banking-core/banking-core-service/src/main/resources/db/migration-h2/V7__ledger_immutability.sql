@@ -1,0 +1,1 @@
+-- H2: immutability enforced at application layer only
