@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir \"d:\\\\github\\\\my-system-design\")",
       "Bash(dir \"d:\\\\github\\\\my-system-design\\\\design-md-files\")",
-      "Bash(rtk ls *)"
+      "Bash(rtk ls *)",
+      "Bash(rtk read *)",
+      "Bash(rtk grep *)"
     ]
   }
 }

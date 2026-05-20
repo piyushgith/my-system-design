@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  flyway:
+    enabled: true
+    schemas: paste,identity
+    default-schema: paste
+    create-schemas: true
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+pastebin:
+  base-url: http://localhost:8080
+  jwt:
+    secret: test-secret-key-for-jwt-signing-minimum-256-bits-long-value!!
+    expiration-ms: 3600000
