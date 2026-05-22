@@ -19,8 +19,13 @@ import com.test.kyc.identification.verification.domain.StepStatus;
 import com.test.kyc.identification.verification.domain.StepType;
 import com.test.kyc.identification.verification.domain.VerificationStep;
 import com.test.kyc.identification.verification.repository.VerificationStepRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.kyc.identification.verification.VerificationQueryApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +33,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class VerificationPipelineService {
+public class VerificationPipelineService implements VerificationQueryApi {
 
     private final VendorClient vendorClient;
     private final StateMachineService stateMachine;
@@ -42,19 +48,24 @@ public class VerificationPipelineService {
     private final ManualReviewQueueRepository reviewQueueRepository;
     private final KycOutcomePublisher outcomePublisher;
     private final PiiEncryptionService encryptionService;
+    private final ObjectMapper objectMapper;
 
-    /**
-     * Entry point — called after application is persisted.
-     * Runs async so the submission API returns 202 immediately.
-     */
+    // Self-injection via @Lazy so Spring's proxy intercepts @Transactional on internal calls.
+    @Lazy
+    @Autowired
+    private VerificationPipelineService self;
+
+    @Override
     @Async
-    public void startPipeline(KycApplication application) {
-        log.info("Pipeline starting for application={}", application.getApplicationId());
+    public void startPipeline(UUID applicationId) {
+        KycApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalStateException("Application not found: " + applicationId));
+        log.info("Pipeline starting for application={}", applicationId);
         try {
-            runDocumentOcr(application);
+            self.runDocumentOcr(application);
         } catch (Exception e) {
-            log.error("Unhandled pipeline error for application={}", application.getApplicationId(), e);
-            routeToManualReview(application, "VENDOR_ERROR", ReviewPriority.LOW,
+            log.error("Unhandled pipeline error for application={}", applicationId, e);
+            self.routeToManualReview(application, "VENDOR_ERROR", ReviewPriority.LOW,
                     "Pipeline error: " + e.getMessage());
         }
     }
@@ -80,7 +91,7 @@ public class VerificationPipelineService {
 
         if (primaryDoc == null) {
             failStep(step, "No documents found");
-            routeToManualReview(application, "DOCUMENT_REJECTED", ReviewPriority.MEDIUM,
+            self.routeToManualReview(application, "DOCUMENT_REJECTED", ReviewPriority.MEDIUM,
                     "No documents attached");
             return;
         }
@@ -89,20 +100,20 @@ public class VerificationPipelineService {
         OcrResult ocrResult = vendorClient.performDocumentOcr(s3Key, primaryDoc.getDocumentType());
 
         step.setResult(ocrResultToMap(ocrResult));
-        step.setCompletedAt(Instant.now());
 
         if (ocrResult.isSuccess() && ocrResult.getConfidenceScore() >= 0.85) {
             step.setStatus(StepStatus.PASS);
+            step.setCompletedAt(Instant.now());
             stepRepository.save(step);
             stateMachine.transition(application, KycStatus.DOCUMENT_VERIFIED,
                     "SYSTEM", "kyc-pipeline", "OCR passed, confidence=" + ocrResult.getConfidenceScore());
-            runLivenessCheck(application);
+            self.runLivenessCheck(application);
         } else {
             failStep(step, ocrResult.getFailureReason());
             stateMachine.transition(application, KycStatus.DOCUMENT_REJECTED,
                     "SYSTEM", "kyc-pipeline",
                     "OCR failed: " + ocrResult.getFailureReason());
-            routeToManualReview(application, "DOCUMENT_REJECTED", ReviewPriority.MEDIUM,
+            self.routeToManualReview(application, "DOCUMENT_REJECTED", ReviewPriority.MEDIUM,
                     "Low OCR confidence: " + ocrResult.getConfidenceScore());
         }
     }
@@ -126,29 +137,33 @@ public class VerificationPipelineService {
                 .findFirst()
                 .orElse(null);
 
-        String selfieKey = selfie != null
-                ? encryptionService.decryptS3Key(selfie.getS3KeyEncrypted())
-                : "no-selfie";
+        if (selfie == null) {
+            failStep(step, "No selfie document found");
+            self.routeToManualReview(application, "LIVENESS_FAILED", ReviewPriority.MEDIUM,
+                    "No selfie document attached");
+            return;
+        }
 
+        String selfieKey = encryptionService.decryptS3Key(selfie.getS3KeyEncrypted());
         LivenessResult result = vendorClient.performLivenessCheck(selfieKey);
 
         step.setResult(Map.of(
                 "live", result.isLive(),
                 "confidence", result.getConfidenceScore()
         ));
-        step.setCompletedAt(Instant.now());
 
         if (result.isLive()) {
             step.setStatus(StepStatus.PASS);
+            step.setCompletedAt(Instant.now());
             stepRepository.save(step);
             stateMachine.transition(application, KycStatus.LIVENESS_PASSED,
                     "SYSTEM", "kyc-pipeline", "Liveness passed");
-            runWatchlistScreening(application);
+            self.runWatchlistScreening(application);
         } else {
             failStep(step, result.getFailureReason());
             stateMachine.transition(application, KycStatus.LIVENESS_FAILED,
                     "SYSTEM", "kyc-pipeline", "Liveness failed: " + result.getFailureReason());
-            routeToManualReview(application, "LIVENESS_FAILED", ReviewPriority.MEDIUM,
+            self.routeToManualReview(application, "LIVENESS_FAILED", ReviewPriority.MEDIUM,
                     "Liveness check failed");
         }
     }
@@ -179,16 +194,17 @@ public class VerificationPipelineService {
 
         if (result.isClear()) {
             step.setStatus(StepStatus.PASS);
+            step.setCompletedAt(Instant.now());
             stepRepository.save(step);
             stateMachine.transition(application, KycStatus.WATCHLIST_CLEAR,
                     "SYSTEM", "kyc-pipeline", "No watchlist hits");
-            approveApplication(application);
+            self.approveApplication(application);
         } else {
             failStep(step, "Watchlist hit: " + result.getHits().size() + " match(es)");
             stateMachine.transition(application, KycStatus.WATCHLIST_HIT,
                     "SYSTEM", "kyc-pipeline",
                     "Watchlist hit count=" + result.getHits().size());
-            routeToManualReview(application, "WATCHLIST_HIT", ReviewPriority.HIGH,
+            self.routeToManualReview(application, "WATCHLIST_HIT", ReviewPriority.HIGH,
                     "Sanctions/PEP match detected");
         }
     }
@@ -222,6 +238,14 @@ public class VerificationPipelineService {
         log.info("Application {} routed to MANUAL_REVIEW: reason={}", application.getApplicationId(), routingReason);
     }
 
+    @Override
+    public List<StepSummary> getStepSummaries(UUID applicationId) {
+        return stepRepository.findByApplicationId(applicationId).stream()
+                .map(s -> new StepSummary(
+                        s.getStepType().name(), s.getStatus().name(), s.getCompletedAt()))
+                .toList();
+    }
+
     private void failStep(VerificationStep step, String reason) {
         step.setStatus(StepStatus.FAIL);
         step.setFailureReason(reason);
@@ -238,16 +262,14 @@ public class VerificationPipelineService {
         );
     }
 
-    /** Minimal JSON field extraction without pulling in Jackson dependency here. */
     private String extractField(String json, String field) {
-        String key = "\"" + field + "\"";
-        int idx = json.indexOf(key);
-        if (idx < 0) return "";
-        int colon = json.indexOf(':', idx);
-        if (colon < 0) return "";
-        int valStart = json.indexOf('"', colon) + 1;
-        int valEnd = json.indexOf('"', valStart);
-        if (valStart <= 0 || valEnd < 0) return "";
-        return json.substring(valStart, valEnd);
+        try {
+            Map<String, Object> map = objectMapper.readValue(json, new TypeReference<>() {});
+            Object val = map.get(field);
+            return val != null ? val.toString() : "";
+        } catch (Exception e) {
+            log.warn("Failed to extract field '{}' from PII JSON", field, e);
+            return "";
+        }
     }
 }

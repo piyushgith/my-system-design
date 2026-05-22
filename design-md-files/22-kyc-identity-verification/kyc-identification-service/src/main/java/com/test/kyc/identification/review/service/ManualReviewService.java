@@ -63,6 +63,9 @@ public class ManualReviewService {
         KycApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
 
+        if (!"APPROVED".equals(decision) && !"REJECTED".equals(decision)) {
+            throw new IllegalArgumentException("Decision must be APPROVED or REJECTED, got: " + decision);
+        }
         KycStatus targetStatus = "APPROVED".equals(decision) ? KycStatus.APPROVED : KycStatus.REJECTED;
 
         stateMachine.transition(application, targetStatus,

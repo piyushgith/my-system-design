@@ -1,0 +1,75 @@
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: kyc-postgres
+    environment:
+      POSTGRES_DB: kyc_db
+      POSTGRES_USER: kyc_user
+      POSTGRES_PASSWORD: kyc_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - kyc-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyc_user -d kyc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: kyc-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: kyc-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kyc-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Pre-create Kafka topics on startup
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      kafka-topics --create --if-not-exists --topic kyc.outcome.decided --partitions 3 --replication-factor 1 --bootstrap-server kafka:29092
+      kafka-topics --create --if-not-exists --topic kyc.manual.review.required --partitions 3 --replication-factor 1 --bootstrap-server kafka:29092
+      echo 'Topics created.'
+      "
+
+volumes:
+  kyc-pgdata:

@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
+
 @Entity
 @Table(name = "kyc_applications")
 @Getter
@@ -19,6 +20,10 @@ public class KycApplication {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "application_id", updatable = false, nullable = false)
     private UUID applicationId;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;

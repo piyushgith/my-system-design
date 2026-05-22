@@ -13,7 +13,7 @@ import com.test.kyc.identification.application.repository.StateTransitionReposit
 import com.test.kyc.identification.common.encryption.PiiEncryptionService;
 import com.test.kyc.identification.common.exception.ActiveApplicationExistsException;
 import com.test.kyc.identification.common.exception.ApplicationNotFoundException;
-import com.test.kyc.identification.verification.service.VerificationPipelineService;
+import com.test.kyc.identification.verification.VerificationQueryApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -36,7 +36,7 @@ public class KycApplicationService {
     private final DocumentReferenceRepository documentReferenceRepository;
     private final StateTransitionRepository transitionRepository;
     private final PiiEncryptionService encryptionService;
-    private final VerificationPipelineService pipelineService;
+    private final VerificationQueryApi verificationApi;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -117,7 +117,7 @@ public class KycApplicationService {
         }
 
         // 8. Kick off async pipeline
-        pipelineService.startPipeline(application);
+        verificationApi.startPipeline(application.getApplicationId());
 
         log.info("KYC application submitted: id={} user={} tier={}", application.getApplicationId(), userId, tier);
         return application;
@@ -135,11 +135,11 @@ public class KycApplicationService {
         return transitionRepository.findByApplicationIdOrderByOccurredAtAsc(applicationId);
     }
 
-    public List<VerificationStepSummary> getStepSummaries(UUID applicationId) {
+    public List<VerificationQueryApi.StepSummary> getStepSummaries(UUID applicationId) {
         if (!applicationRepository.existsById(applicationId)) {
             throw new ApplicationNotFoundException(applicationId);
         }
-        return List.of(); // populated by verification module queries
+        return verificationApi.getStepSummaries(applicationId);
     }
 
     private String serializePersonalData(Map<String, Object> data) {
@@ -151,6 +151,4 @@ public class KycApplicationService {
     }
 
     public record DocumentInput(String s3Key, String documentType, String side) {}
-
-    public record VerificationStepSummary(String stepType, String status, Instant completedAt) {}
 }

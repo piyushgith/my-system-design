@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat MVP</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <header>
+        <h1>Chat MVP</h1>
+        <p id="current-user">Not signed in</p>
+      </header>
+      <section class="auth-panel" id="auth-panel">
+        <h2>Sign in</h2>
+        <input id="login-input" placeholder="Username or email">
+        <input id="password-input" type="password" placeholder="Password">
+        <button id="login-btn">Login</button>
+        <hr>
+        <h2>Register</h2>
+        <input id="reg-username" placeholder="Username">
+        <input id="reg-display" placeholder="Display name">
+        <input id="reg-email" placeholder="Email">
+        <input id="reg-password" type="password" placeholder="Password">
+        <button id="register-btn">Register</button>
+      </section>
+      <section class="chat-panel hidden" id="chat-panel">
+        <button id="logout-btn" class="secondary">Logout</button>
+        <h2>Conversations</h2>
+        <ul id="conversation-list"></ul>
+        <h3>New chat</h3>
+        <select id="conversation-type">
+          <option value="DIRECT">Direct</option>
+          <option value="GROUP">Group</option>
+        </select>
+        <input id="group-name" placeholder="Group name (groups only)">
+        <input id="member-ids" placeholder="Member user IDs (comma separated)">
+        <button id="create-conversation-btn">Create</button>
+      </section>
+    </aside>
+    <main class="chat-main hidden" id="chat-main">
+      <header id="chat-header">Select a conversation</header>
+      <div id="messages" class="messages"></div>
+      <form id="message-form" class="message-form">
+        <input id="message-input" placeholder="Type a message..." autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
