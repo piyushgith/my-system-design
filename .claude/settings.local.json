@@ -7,7 +7,20 @@
       "Bash(rtk read *)",
       "Bash(rtk grep *)",
       "Bash(rtk mvn *)",
-      "Agent"
+      "Agent",
+      "Bash(npm install *)",
+      "Bash(rtk npm *)",
+      "Bash(npm create *)",
+      "Bash(rtk find *)",
+      "Bash(rtk tsc *)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@tanstack/react-query/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(npm list *)",
+      "Bash(rtk lint *)",
+      "Bash(./node_modules/.bin/eslint src *)",
+      "Bash(rtk vitest *)",
+      "Bash(git mv *)",
+      "Bash(git ls-tree *)",
+      "Bash(rtk git *)"
     ]
   }
 }
