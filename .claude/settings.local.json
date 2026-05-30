@@ -20,7 +20,8 @@
       "Bash(rtk vitest *)",
       "Bash(git mv *)",
       "Bash(git ls-tree *)",
-      "Bash(rtk git *)"
+      "Bash(rtk git *)",
+      "Bash(rtk npx *)"
     ]
   }
 }

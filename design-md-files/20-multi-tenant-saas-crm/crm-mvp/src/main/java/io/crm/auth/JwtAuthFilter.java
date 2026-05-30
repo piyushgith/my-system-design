@@ -42,11 +42,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String userId = jwtService.extractUserId(token);
-        userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {
-            var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        });
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {
+                var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            });
+        }
 
         chain.doFilter(request, response);
     }

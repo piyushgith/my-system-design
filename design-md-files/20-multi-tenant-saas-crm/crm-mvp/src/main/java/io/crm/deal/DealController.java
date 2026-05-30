@@ -41,7 +41,7 @@ public class DealController {
         return dealService.create(req);
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public DealResponse update(@PathVariable UUID id, @Valid @RequestBody DealRequest req) {
         return dealService.update(id, req);
     }

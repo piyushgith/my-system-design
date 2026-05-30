@@ -77,6 +77,8 @@ public class ContactService {
             User owner = userRepository.findById(req.ownerId())
                     .orElseThrow(() -> new NoSuchElementException("Owner user not found: " + req.ownerId()));
             contact.setOwner(owner);
+        } else {
+            contact.setOwner(null);
         }
     }
 }

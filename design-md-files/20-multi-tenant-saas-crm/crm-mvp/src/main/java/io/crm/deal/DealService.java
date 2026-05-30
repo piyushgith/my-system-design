@@ -61,8 +61,12 @@ public class DealService {
     public DealResponse update(UUID id, DealRequest req) {
         Deal deal = requireActive(id);
         applyRequest(deal, req);
-        if (req.status() != null && req.status() != DealStatus.OPEN && deal.getClosedAt() == null) {
-            deal.setClosedAt(OffsetDateTime.now());
+        if (req.status() != null) {
+            if (req.status() == DealStatus.OPEN) {
+                deal.setClosedAt(null);
+            } else {
+                deal.setClosedAt(OffsetDateTime.now());
+            }
         }
         return DealResponse.from(dealRepository.save(deal));
     }
