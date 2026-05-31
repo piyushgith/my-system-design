@@ -3,6 +3,7 @@ package com.test.url.shortner.redirect.api;
 import com.test.url.shortner.redirect.application.RedirectService;
 import com.test.url.shortner.redirect.application.RedirectService.RedirectResult;
 import com.test.url.shortner.shared.error.ErrorResponse;
+import com.test.url.shortner.url.api.ReservedPaths;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

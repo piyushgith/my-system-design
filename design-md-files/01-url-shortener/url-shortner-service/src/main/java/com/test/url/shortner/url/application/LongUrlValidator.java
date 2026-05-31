@@ -1,5 +1,6 @@
 package com.test.url.shortner.url.application;
 
+import com.test.url.shortner.url.api.exception.InvalidLongUrlException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.springframework.stereotype.Component;
@@ -31,12 +32,6 @@ public class LongUrlValidator {
 		}
 		if (uri.getHost() == null || uri.getHost().isBlank()) {
 			throw new InvalidLongUrlException("Long URL must include a host");
-		}
-	}
-
-	public static class InvalidLongUrlException extends RuntimeException {
-		public InvalidLongUrlException(String message) {
-			super(message);
 		}
 	}
 }

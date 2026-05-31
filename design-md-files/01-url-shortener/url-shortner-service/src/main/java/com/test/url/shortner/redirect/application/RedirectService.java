@@ -1,63 +1,31 @@
 package com.test.url.shortner.redirect.application;
 
-import com.test.url.shortner.url.domain.ShortUrl;
-import com.test.url.shortner.url.domain.UrlStatus;
-import com.test.url.shortner.url.infrastructure.CachedUrlEntry;
-import com.test.url.shortner.url.infrastructure.ShortUrlRepository;
-import com.test.url.shortner.url.infrastructure.UrlCacheService;
-import java.util.Optional;
+import com.test.url.shortner.url.api.UrlLookupPort;
+import com.test.url.shortner.url.api.UrlLookupResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RedirectService {
 
-	private final ShortUrlRepository shortUrlRepository;
-	private final UrlCacheService urlCacheService;
+	private static final Logger log = LoggerFactory.getLogger(RedirectService.class);
 
-	public RedirectService(ShortUrlRepository shortUrlRepository, UrlCacheService urlCacheService) {
-		this.shortUrlRepository = shortUrlRepository;
-		this.urlCacheService = urlCacheService;
+	private final UrlLookupPort urlLookup;
+
+	public RedirectService(UrlLookupPort urlLookup) {
+		this.urlLookup = urlLookup;
 	}
 
-	@Transactional(readOnly = true)
 	public RedirectResult resolve(String shortCode) {
-		Optional<CachedUrlEntry> cached = urlCacheService.get(shortCode);
-		if (cached.isPresent()) {
-			return fromCachedEntry(cached.get());
-		}
-
-		Optional<ShortUrl> shortUrl = shortUrlRepository.findById(shortCode);
-		if (shortUrl.isEmpty()) {
-			return RedirectResult.notFound();
-		}
-
-		ShortUrl url = shortUrl.get();
-		RedirectResult result = fromShortUrl(url);
-		if (result.outcome() == RedirectOutcome.FOUND) {
-			urlCacheService.cache(shortCode, url.getLongUrl(), url.getExpiresAt(), url.getStatus());
-		}
+		UrlLookupResult lookup = urlLookup.findByShortCode(shortCode);
+		RedirectResult result = switch (lookup.outcome()) {
+			case FOUND -> RedirectResult.found(lookup.longUrl());
+			case EXPIRED -> RedirectResult.expired();
+			case NOT_FOUND -> RedirectResult.notFound();
+		};
+		log.debug("Redirect outcome shortCode={} outcome={}", shortCode, result.outcome());
 		return result;
-	}
-
-	private RedirectResult fromCachedEntry(CachedUrlEntry entry) {
-		if (entry.status() == UrlStatus.DELETED) {
-			return RedirectResult.notFound();
-		}
-		if (!entry.isRedirectable()) {
-			return RedirectResult.expired();
-		}
-		return RedirectResult.found(entry.longUrl());
-	}
-
-	private RedirectResult fromShortUrl(ShortUrl url) {
-		if (url.getStatus() == UrlStatus.DELETED) {
-			return RedirectResult.notFound();
-		}
-		if (url.getStatus() == UrlStatus.EXPIRED || !url.isRedirectable()) {
-			return RedirectResult.expired();
-		}
-		return RedirectResult.found(url.getLongUrl());
 	}
 
 	public enum RedirectOutcome {
