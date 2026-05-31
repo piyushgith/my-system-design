@@ -21,7 +21,8 @@
       "Bash(git mv *)",
       "Bash(git ls-tree *)",
       "Bash(rtk git *)",
-      "Bash(rtk npx *)"
+      "Bash(rtk npx *)",
+      "Bash(mvn test *)"
     ]
   }
 }

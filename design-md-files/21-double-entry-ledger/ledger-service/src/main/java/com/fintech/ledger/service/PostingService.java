@@ -1,6 +1,7 @@
 package com.fintech.ledger.service;
 
 import com.fintech.ledger.api.dto.CreatePostingRequest;
+import com.fintech.ledger.api.dto.PostingCreationResult;
 import com.fintech.ledger.api.dto.PostingLegRequest;
 import com.fintech.ledger.api.dto.PostingResponse;
 import com.fintech.ledger.api.dto.ReversePostingRequest;
@@ -37,23 +38,14 @@ public class PostingService {
     private final AccountRepository accountRepository;
     private final StringRedisTemplate redisTemplate;
 
-    @Transactional(readOnly = true)
-    public boolean existsByIdempotencyKey(String idempotencyKey) {
-        String redisKey = IDEMPOTENCY_KEY_PREFIX + idempotencyKey;
-        try {
-            if (redisTemplate.hasKey(redisKey)) return true;
-        } catch (Exception ignored) {}
-        return postingRepository.existsByIdempotencyKey(idempotencyKey);
-    }
-
     @Transactional
-    public PostingResponse createPosting(CreatePostingRequest req) {
+    public PostingCreationResult createPosting(CreatePostingRequest req) {
         // 1. Check Redis idempotency cache (fast short-circuit)
         String redisKey = IDEMPOTENCY_KEY_PREFIX + req.idempotencyKey();
         PostingResponse cached = resolveFromRedis(redisKey);
         if (cached != null) {
             log.debug("Idempotency HIT (Redis): {}", req.idempotencyKey());
-            return cached;
+            return new PostingCreationResult(cached, false);
         }
 
         // 2. DB-level idempotency check (Redis miss — DB is fallback)
@@ -61,14 +53,15 @@ public class PostingService {
         if (existing.isPresent()) {
             log.debug("Idempotency HIT (DB): {}", req.idempotencyKey());
             warmRedisCache(redisKey, existing.get().getPostingId());
-            return PostingResponse.from(existing.get());
+            return new PostingCreationResult(PostingResponse.from(existing.get()), false);
         }
 
         // 3. Validate invariant: debit sum == credit sum per currency
         validateInvariant(req.legs());
 
         // 4. Validate all accounts exist and are ACTIVE
-        validateAccounts(req.legs());
+        List<UUID> accountIds = req.legs().stream().map(PostingLegRequest::accountId).distinct().toList();
+        validateAccountIds(accountIds);
 
         // 5. Build and persist posting + journal entries atomically
         Posting posting = buildPosting(req);
@@ -78,7 +71,7 @@ public class PostingService {
         warmRedisCache(redisKey, saved.getPostingId());
 
         log.info("Posting created: {} idempotencyKey={}", saved.getPostingId(), req.idempotencyKey());
-        return PostingResponse.from(saved);
+        return new PostingCreationResult(PostingResponse.from(saved), true);
     }
 
     @Transactional
@@ -101,6 +94,11 @@ public class PostingService {
         if (original.isReversed()) {
             throw new PostingAlreadyReversedException(postingId);
         }
+
+        // Validate all accounts in original posting are still ACTIVE before reversing
+        List<UUID> legAccountIds = original.getLegs().stream()
+                .map(JournalEntry::getAccountId).distinct().toList();
+        validateAccountIds(legAccountIds);
 
         // Build reversal: flip each leg's direction
         Posting reversal = new Posting();
@@ -174,17 +172,14 @@ public class PostingService {
         }
     }
 
-    private void validateAccounts(List<PostingLegRequest> legs) {
-        List<UUID> accountIds = legs.stream().map(PostingLegRequest::accountId).distinct().toList();
+    private void validateAccountIds(List<UUID> accountIds) {
         List<Account> accounts = accountRepository.findAllByIds(accountIds);
-
         Map<UUID, Account> accountMap = accounts.stream()
                 .collect(Collectors.toMap(Account::getAccountId, a -> a));
-
-        for (PostingLegRequest leg : legs) {
-            Account account = accountMap.get(leg.accountId());
-            if (account == null) throw new AccountNotFoundException(leg.accountId());
-            if (!account.isActive()) throw new AccountNotActiveException(leg.accountId(), account.getStatus());
+        for (UUID id : accountIds) {
+            Account account = accountMap.get(id);
+            if (account == null) throw new AccountNotFoundException(id);
+            if (!account.isActive()) throw new AccountNotActiveException(id, account.getStatus());
         }
     }
 

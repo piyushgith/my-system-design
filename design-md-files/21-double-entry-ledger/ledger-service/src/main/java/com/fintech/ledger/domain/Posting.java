@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -54,6 +55,7 @@ public class Posting {
     @Column(name = "metadata")
     private Map<String, String> metadata;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "posting", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<JournalEntry> legs = new ArrayList<>();
 

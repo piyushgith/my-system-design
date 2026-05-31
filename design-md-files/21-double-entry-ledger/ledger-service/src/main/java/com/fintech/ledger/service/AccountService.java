@@ -45,7 +45,7 @@ public class AccountService {
         switch (req.status()) {
             case FROZEN -> account.freeze();
             case CLOSED -> account.close();
-            case ACTIVE -> account.setStatus(AccountStatus.ACTIVE);
+            case ACTIVE -> account.reactivate();
         }
         return AccountResponse.from(accountRepository.save(account));
     }

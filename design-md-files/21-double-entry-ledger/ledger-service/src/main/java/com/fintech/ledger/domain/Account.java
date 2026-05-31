@@ -82,6 +82,13 @@ public class Account {
         this.closedAt = Instant.now();
     }
 
+    public void reactivate() {
+        if (this.status == AccountStatus.CLOSED) {
+            throw new IllegalStateException("Cannot reactivate closed account: " + accountId);
+        }
+        this.status = AccountStatus.ACTIVE;
+    }
+
     public boolean isActive() {
         return this.status.acceptsPostings();
     }

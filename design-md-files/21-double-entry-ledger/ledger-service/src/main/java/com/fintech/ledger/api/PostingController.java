@@ -1,6 +1,7 @@
 package com.fintech.ledger.api;
 
 import com.fintech.ledger.api.dto.*;
+import com.fintech.ledger.api.dto.PostingCreationResult;
 import com.fintech.ledger.service.PostingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,11 @@ public class PostingController {
 
     @PostMapping
     public ResponseEntity<PostingResponse> createPosting(@Valid @RequestBody CreatePostingRequest req) {
-        boolean existed = postingService.existsByIdempotencyKey(req.idempotencyKey());
-        PostingResponse response = postingService.createPosting(req);
+        PostingCreationResult result = postingService.createPosting(req);
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Idempotency-Result", existed ? "HIT" : "CREATED");
-        HttpStatus status = existed ? HttpStatus.OK : HttpStatus.CREATED;
-        return ResponseEntity.status(status).headers(headers).body(response);
+        headers.set("Idempotency-Result", result.created() ? "CREATED" : "HIT");
+        HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
+        return ResponseEntity.status(status).headers(headers).body(result.response());
     }
 
     @PostMapping("/{postingId}/reverse")
