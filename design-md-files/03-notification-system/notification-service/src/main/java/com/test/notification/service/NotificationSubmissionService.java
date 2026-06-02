@@ -10,6 +10,7 @@ import com.test.notification.domain.model.OutboxEvent;
 import com.test.notification.domain.repository.NotificationRequestRepository;
 import com.test.notification.domain.repository.OutboxEventRepository;
 import com.test.notification.exception.DuplicateIdempotencyKeyException;
+import com.test.notification.exception.NotificationNotFoundException;
 import com.test.notification.exception.OutboxSerializationException;
 import com.test.notification.kafka.event.NotificationRequestedEvent;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,6 @@ public class NotificationSubmissionService {
 
         request.setNotificationId(UUID.randomUUID());
         request.setStatus(NotificationStatus.PENDING);
-        request.setCreatedAt(Instant.now());
 
         NotificationRequest saved = notificationRepository.save(request);
 
@@ -64,16 +64,13 @@ public class NotificationSubmissionService {
 
     @Transactional
     public boolean cancel(UUID notificationId) {
-        return notificationRepository.findById(notificationId).map(n -> {
-            if (n.getStatus() == NotificationStatus.PENDING
-                    || n.getStatus() == NotificationStatus.DISPATCHED) {
-                n.setStatus(NotificationStatus.CANCELLED);
-                n.setCompletedAt(Instant.now());
-                notificationRepository.save(n);
-                return true;
-            }
+        NotificationRequest notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+        if (!notification.getStatus().isCancellable()) {
             return false;
-        }).orElse(false);
+        }
+        notificationRepository.updateStatus(notificationId, NotificationStatus.CANCELLED, Instant.now());
+        return true;
     }
 
     private void checkIdempotency(String idempotencyKey) {

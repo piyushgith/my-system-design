@@ -7,6 +7,7 @@ import com.fooddelivery.delivery.service.dto.PartnerLocationResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +41,7 @@ public class DeliveryController {
     }
 
     /** Admin / ops: manually assign partner to order (MVP dispatch) */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/assignments")
     public ResponseEntity<DeliveryResponse> assign(
             @RequestParam UUID orderId,

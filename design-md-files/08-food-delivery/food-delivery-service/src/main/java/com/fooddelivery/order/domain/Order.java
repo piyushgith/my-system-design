@@ -95,7 +95,7 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
@@ -113,18 +113,18 @@ public class Order {
     }
 
     public void transitionTo(OrderStatus newStatus) {
-        if (this.status.isTerminal()) {
-            throw new IllegalStateException("Order " + id + " is in terminal state " + status);
+        if (!this.status.canTransitionTo(newStatus)) {
+            throw new IllegalStateException(
+                    "Order " + id + ": invalid transition " + status + " -> " + newStatus);
         }
         this.status = newStatus;
     }
 
-    public void cancel(String cancelledBy, String reason) {
+    public void recordCancellation(String cancelledBy, String reason) {
         if (!this.status.isCancellableByCustomer()) {
             throw new IllegalStateException("Order cannot be cancelled in state " + status);
         }
         this.cancelledBy = cancelledBy;
         this.cancellationReason = reason;
-        this.status = OrderStatus.CANCELLING;
     }
 }

@@ -1,5 +1,6 @@
 package com.test.notification.domain.repository;
 
+import com.test.notification.domain.enums.Category;
 import com.test.notification.domain.enums.Channel;
 import com.test.notification.domain.model.UserNotificationPreference;
 import com.test.notification.domain.model.UserPreferenceId;
@@ -16,4 +17,7 @@ public interface UserPreferenceRepository extends JpaRepository<UserNotification
     Optional<UserNotificationPreference> findByUnsubscribeToken(String token);
 
     List<UserNotificationPreference> findByUserIdAndChannel(UUID userId, Channel channel);
+
+    Optional<UserNotificationPreference> findByUserIdAndChannelAndCategory(
+            UUID userId, Channel channel, Category category);
 }

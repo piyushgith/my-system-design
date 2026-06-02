@@ -20,6 +20,9 @@ public class Delivery {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Version
+    private Long version;
+
     @Column(name = "order_id", nullable = false, unique = true)
     private UUID orderId;
 

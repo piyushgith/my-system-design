@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,11 +53,12 @@ public class PreferenceService {
 
     @Transactional(readOnly = true)
     public boolean isOptedIn(UUID userId, Channel channel, Category category) {
-        return getPreferences(userId).stream()
-                .filter(p -> p.getChannel() == channel && p.getCategory() == category)
-                .findFirst()
-                .map(p -> p.isOptedIn() && !p.isHardUnsubscribed())
-                .orElse(true); // default: opted-in if no preference record exists
+        Optional<UserNotificationPreference> pref =
+                preferenceRepository.findByUserIdAndChannelAndCategory(userId, channel, category);
+        if (pref.isEmpty()) return true; // default: opted-in if no record exists
+        UserNotificationPreference p = pref.get();
+        if (!p.isOptedIn() || p.isHardUnsubscribed()) return false;
+        return !isInQuietHours(p);
     }
 
     @Transactional
@@ -85,14 +88,33 @@ public class PreferenceService {
     @Transactional
     public void hardUnsubscribe(UUID userId, Channel channel, Category category) {
         UserPreferenceId id = new UserPreferenceId(userId, channel, category);
-        preferenceRepository.findById(id).ifPresent(pref -> {
-            pref.setOptedIn(false);
-            pref.setHardUnsubscribed(true);
-            pref.setHardUnsubscribedAt(Instant.now());
-            pref.setUpdatedAt(Instant.now());
-            preferenceRepository.save(pref);
-            evictCache(userId);
-        });
+        UserNotificationPreference pref = preferenceRepository.findById(id)
+                .orElseGet(() -> UserNotificationPreference.builder()
+                        .userId(userId)
+                        .channel(channel)
+                        .category(category)
+                        .build());
+        pref.setOptedIn(false);
+        pref.setHardUnsubscribed(true);
+        pref.setHardUnsubscribedAt(Instant.now());
+        pref.setUpdatedAt(Instant.now());
+        preferenceRepository.save(pref);
+        evictCache(userId);
+    }
+
+    private boolean isInQuietHours(UserNotificationPreference pref) {
+        if (pref.getQuietHoursStart() == null || pref.getQuietHoursEnd() == null) return false;
+        ZoneId zone = ZoneId.of(pref.getTimezone() != null ? pref.getTimezone() : "UTC");
+        LocalTime now = LocalTime.now(zone);
+        LocalTime start = pref.getQuietHoursStart();
+        LocalTime end = pref.getQuietHoursEnd();
+        if (start.isBefore(end)) {
+            // same-day window: e.g. 09:00 → 17:00
+            return !now.isBefore(start) && now.isBefore(end);
+        } else {
+            // wraps midnight: e.g. 22:00 → 06:00
+            return !now.isBefore(start) || now.isBefore(end);
+        }
     }
 
     private void cachePreferences(String key, List<UserNotificationPreference> prefs) {

@@ -12,6 +12,9 @@ import java.util.UUID;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
 
+    boolean existsByOwnerId(UUID ownerId);
+
+
     @Query("""
             SELECT r FROM Restaurant r
             WHERE r.cityId = :cityId

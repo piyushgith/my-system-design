@@ -70,22 +70,25 @@ public class TemplateService {
     }
 
     public String render(Template template, Map<String, String> variables) {
-        String body = template.getBodyText();
-        if (variables == null) return body;
-        for (Map.Entry<String, String> entry : variables.entrySet()) {
-            body = body.replace("{{" + entry.getKey() + "}}", entry.getValue());
-        }
-        return body;
+        return interpolate(template.getBodyText(), variables);
     }
 
     public String renderSubject(Template template, Map<String, String> variables) {
-        if (template.getSubject() == null) return "";
-        String subject = template.getSubject();
-        if (variables == null) return subject;
+        return interpolate(template.getSubject(), variables);
+    }
+
+    public String renderHtml(Template template, Map<String, String> variables) {
+        return interpolate(template.getBodyHtml(), variables);
+    }
+
+    private String interpolate(String text, Map<String, String> variables) {
+        if (text == null) return "";
+        if (variables == null || variables.isEmpty()) return text;
+        String result = text;
         for (Map.Entry<String, String> entry : variables.entrySet()) {
-            subject = subject.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
         }
-        return subject;
+        return result;
     }
 
     private void cacheTemplate(String key, Template template) {

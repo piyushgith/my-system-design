@@ -1,5 +1,6 @@
 package com.fooddelivery.order.service;
 
+import com.fooddelivery.common.FeeConstants;
 import com.fooddelivery.common.exception.ConflictException;
 import com.fooddelivery.common.exception.NotFoundException;
 import com.fooddelivery.order.domain.*;
@@ -23,8 +24,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderService {
 
-    private static final long DELIVERY_FEE_PAISE = 4000L;   // Rs 40
-    private static final long PLATFORM_FEE_PAISE = 200L;    // Rs 2
+    private static final int MAX_PAGE_SIZE = 50;
+    private static final String ORDER_NOT_FOUND = "Order not found";
 
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
@@ -32,7 +33,6 @@ public class OrderService {
 
     @Transactional
     public PlaceOrderResponse placeOrder(UUID customerId, PlaceOrderRequest request) {
-        // Idempotency check
         orderRepository.findByIdempotencyKey(request.idempotencyKey()).ifPresent(existing -> {
             throw new ConflictException("Order already exists: " + existing.getId());
         });
@@ -44,7 +44,6 @@ public class OrderService {
             throw new IllegalStateException("Restaurant is not accepting orders");
         }
 
-        // Build order items with price snapshot
         List<OrderItem> items = new ArrayList<>();
         long subtotal = 0;
         for (var lineItem : request.items()) {
@@ -70,7 +69,7 @@ public class OrderService {
             throw new IllegalArgumentException("Order below minimum value");
         }
 
-        long totalAmount = subtotal + DELIVERY_FEE_PAISE + PLATFORM_FEE_PAISE;
+        long totalAmount = subtotal + FeeConstants.DELIVERY_FEE_PAISE + FeeConstants.PLATFORM_FEE_PAISE;
 
         Order order = Order.builder()
                 .customerId(customerId)
@@ -79,15 +78,16 @@ public class OrderService {
                 .status(OrderStatus.PAYMENT_PENDING)
                 .subtotalAmount(subtotal)
                 .subtotalCurrency("INR")
-                .deliveryFeeAmount(DELIVERY_FEE_PAISE)
+                .deliveryFeeAmount(FeeConstants.DELIVERY_FEE_PAISE)
                 .discountAmount(0L)
-                .platformFeeAmount(PLATFORM_FEE_PAISE)
+                .platformFeeAmount(FeeConstants.PLATFORM_FEE_PAISE)
                 .totalAmount(totalAmount)
                 .paymentMethod(request.paymentMethod())
                 .specialInstructions(request.specialInstructions())
                 .idempotencyKey(request.idempotencyKey())
                 .cityId(restaurant.getCityId())
-                .estimatedDeliveryTime(LocalDateTime.now().plusMinutes(restaurant.getAvgPrepTimeMinutes() + 20))
+                .estimatedDeliveryTime(
+                        LocalDateTime.now().plusMinutes((long) restaurant.getAvgPrepTimeMinutes() + FeeConstants.TRANSIT_BUFFER_MINUTES))
                 .items(items)
                 .build();
 
@@ -106,61 +106,72 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderDetailResponse getOrder(UUID orderId, UUID customerId) {
         Order order = orderRepository.findByIdAndCustomerId(orderId, customerId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
         return OrderDetailResponse.from(order);
     }
 
     @Transactional(readOnly = true)
     public Page<OrderSummary> listOrders(UUID customerId, int page, int size) {
-        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, PageRequest.of(page, Math.min(size, 50)))
-                .map(OrderSummary::from);
+        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(
+                customerId, PageRequest.of(page, Math.min(size, MAX_PAGE_SIZE))
+        ).map(OrderSummary::from);
     }
 
     @Transactional
     public CancelOrderResponse cancelOrder(UUID orderId, UUID customerId, String reason) {
         Order order = orderRepository.findByIdAndCustomerId(orderId, customerId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-        order.cancel("CUSTOMER", reason);
-        // MVP: immediately mark CANCELLED (no payment refund flow in MVP)
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
+        order.recordCancellation("CUSTOMER", reason);
         order.transitionTo(OrderStatus.CANCELLED);
         orderRepository.save(order);
         return new CancelOrderResponse(order.getId(), OrderStatus.CANCELLED, "Cancellation processed");
     }
 
-    // Restaurant-facing: accept order
     @Transactional
-    public void acceptOrder(UUID orderId, int estimatedPrepMinutes) {
+    public void acceptOrder(UUID orderId, UUID ownerId, int estimatedPrepMinutes) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
+        verifyRestaurantOwnership(order.getRestaurantId(), ownerId);
         order.transitionTo(OrderStatus.RESTAURANT_ACCEPTED);
-        order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(estimatedPrepMinutes + 20));
+        order.setEstimatedDeliveryTime(
+                LocalDateTime.now().plusMinutes((long) estimatedPrepMinutes + FeeConstants.TRANSIT_BUFFER_MINUTES));
         orderRepository.save(order);
     }
 
-    // Restaurant-facing: reject order
     @Transactional
-    public void rejectOrder(UUID orderId, String reason) {
+    public void rejectOrder(UUID orderId, UUID ownerId, String reason) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
+        verifyRestaurantOwnership(order.getRestaurantId(), ownerId);
         order.transitionTo(OrderStatus.RESTAURANT_REJECTED);
         order.setCancellationReason(reason);
         order.setCancelledBy("RESTAURANT");
         orderRepository.save(order);
     }
 
-    // Restaurant-facing: mark food ready
     @Transactional
-    public void markFoodReady(UUID orderId) {
+    public void markFoodReady(UUID orderId, UUID ownerId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
+        verifyRestaurantOwnership(order.getRestaurantId(), ownerId);
         order.transitionTo(OrderStatus.FOOD_READY);
         orderRepository.save(order);
     }
 
     @Transactional(readOnly = true)
-    public Page<OrderDetailResponse> getRestaurantOrders(UUID restaurantId, OrderStatus status, int page, int size) {
+    public Page<OrderDetailResponse> getRestaurantOrders(UUID restaurantId, UUID ownerId, OrderStatus status, int page, int size) {
+        verifyRestaurantOwnership(restaurantId, ownerId);
         return orderRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(
-                restaurantId, status, PageRequest.of(page, Math.min(size, 50))
+                restaurantId, status, PageRequest.of(page, Math.min(size, MAX_PAGE_SIZE))
         ).map(OrderDetailResponse::from);
+    }
+
+    /** Returns 404 intentionally — don't reveal order existence to unauthorized callers. */
+    private void verifyRestaurantOwnership(UUID restaurantId, UUID ownerId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
+        if (!restaurant.getOwnerId().equals(ownerId)) {
+            throw new NotFoundException(ORDER_NOT_FOUND);
+        }
     }
 }

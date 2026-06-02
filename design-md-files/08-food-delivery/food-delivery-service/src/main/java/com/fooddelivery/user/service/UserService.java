@@ -3,6 +3,7 @@ package com.fooddelivery.user.service;
 import com.fooddelivery.common.exception.ConflictException;
 import com.fooddelivery.common.exception.NotFoundException;
 import com.fooddelivery.common.security.JwtService;
+import com.fooddelivery.restaurant.repository.RestaurantRepository;
 import com.fooddelivery.user.domain.Address;
 import com.fooddelivery.user.domain.User;
 import com.fooddelivery.user.domain.UserStatus;
@@ -10,24 +11,30 @@ import com.fooddelivery.user.repository.AddressRepository;
 import com.fooddelivery.user.repository.UserRepository;
 import com.fooddelivery.user.service.dto.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private static final String OTP_PREFIX = "otp:";
     private static final Duration OTP_TTL = Duration.ofMinutes(5);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
+    private final RestaurantRepository restaurantRepository;
     private final JwtService jwtService;
     private final StringRedisTemplate redisTemplate;
     private final PasswordEncoder passwordEncoder;
@@ -37,7 +44,7 @@ public class UserService {
         String otp = generateOtp();
         redisTemplate.opsForValue().set(OTP_PREFIX + phone, otp, OTP_TTL);
         // TODO: integrate SMS gateway (Twilio / Kaleyra)
-        System.out.println("[SMS STUB] OTP for " + phone + " : " + otp);
+        log.info("[SMS STUB] OTP for {}: {}", phone, otp);
     }
 
     @Transactional
@@ -49,27 +56,30 @@ public class UserService {
         redisTemplate.delete(OTP_PREFIX + phone);
 
         User user = userRepository.findByPhone(phone).orElseGet(() -> createUser(phone));
-        String token = jwtService.generateToken(user.getId().toString(), "CUSTOMER");
+        String role = restaurantRepository.existsByOwnerId(user.getId()) ? "RESTAURANT_OWNER" : "CUSTOMER";
+        String token = jwtService.generateToken(user.getId().toString(), role);
         return new AuthResponse(token, user.getId(), user.getName(), user.getPhone());
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public UserProfileResponse getProfile(UUID userId) {
-        User user = findActiveUser(userId);
-        return UserProfileResponse.from(user);
+        return UserProfileResponse.from(findActiveUser(userId));
     }
 
     @Transactional
     public UserProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = findActiveUser(userId);
-        if (request.name() != null) user.setName(request.name());
+        if (request.name() != null) {
+            user.setName(request.name());
+        }
         if (request.email() != null) {
-            if (userRepository.existsByEmail(request.email())) {
-                throw new ConflictException("Email already in use");
-            }
             user.setEmail(request.email());
         }
-        return UserProfileResponse.from(userRepository.save(user));
+        try {
+            return UserProfileResponse.from(userRepository.save(user));
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException("Email already in use");
+        }
     }
 
     @Transactional
@@ -90,6 +100,7 @@ public class UserService {
         return AddressResponse.from(addressRepository.save(address));
     }
 
+    @Transactional(readOnly = true)
     public List<AddressResponse> listAddresses(UUID userId) {
         return addressRepository.findByUserId(userId)
                 .stream().map(AddressResponse::from).toList();
@@ -116,11 +127,13 @@ public class UserService {
     private User findActiveUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        if (!user.isActive()) throw new IllegalStateException("User account is not active");
+        if (!user.isActive()) {
+            throw new IllegalStateException("User account is not active");
+        }
         return user;
     }
 
-    private String generateOtp() {
-        return String.valueOf((int) (Math.random() * 900000) + 100000);
+    private static String generateOtp() {
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
 }

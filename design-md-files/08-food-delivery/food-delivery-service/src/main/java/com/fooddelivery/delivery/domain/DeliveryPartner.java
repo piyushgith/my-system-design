@@ -57,10 +57,19 @@ public class DeliveryPartner {
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @PrePersist
     void onCreate() {
         joinedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
         if (status == null) status = DeliveryPartnerStatus.PENDING_VERIFICATION;
         if (rating == null) rating = BigDecimal.ZERO;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

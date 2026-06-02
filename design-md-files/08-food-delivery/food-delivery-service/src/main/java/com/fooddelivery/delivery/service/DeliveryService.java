@@ -1,5 +1,6 @@
 package com.fooddelivery.delivery.service;
 
+import com.fooddelivery.common.FeeConstants;
 import com.fooddelivery.common.exception.NotFoundException;
 import com.fooddelivery.delivery.domain.*;
 import com.fooddelivery.delivery.repository.DeliveryPartnerRepository;
@@ -23,6 +24,8 @@ public class DeliveryService {
 
     private static final String LOCATION_KEY_PREFIX = "driver:location:";
     private static final Duration LOCATION_TTL = Duration.ofSeconds(30);
+    private static final String ORDER_NOT_FOUND = "Order not found";
+    private static final String PARTNER_NOT_FOUND = "Delivery partner not found";
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryPartnerRepository partnerRepository;
@@ -30,25 +33,23 @@ public class DeliveryService {
     private final StringRedisTemplate redisTemplate;
 
     /** Partner reports their current GPS location. Stored in Redis with 30s TTL. */
-    @Transactional
     public void updateLocation(UUID partnerId, BigDecimal lat, BigDecimal lng) {
         DeliveryPartner partner = partnerRepository.findById(partnerId)
-                .orElseThrow(() -> new NotFoundException("Delivery partner not found"));
+                .orElseThrow(() -> new NotFoundException(PARTNER_NOT_FOUND));
         if (!partner.isOnline()) {
             throw new IllegalStateException("Partner is offline — location update rejected");
         }
-        String key = LOCATION_KEY_PREFIX + partnerId;
-        String value = lat + "," + lng;
-        redisTemplate.opsForValue().set(key, value, LOCATION_TTL);
+        redisTemplate.opsForValue().set(
+                LOCATION_KEY_PREFIX + partnerId, lat + "," + lng, LOCATION_TTL);
     }
 
     /** MVP: Manual assignment — ops team calls this to assign a partner to an order. */
     @Transactional
     public DeliveryResponse assignPartner(UUID orderId, UUID partnerId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
         DeliveryPartner partner = partnerRepository.findById(partnerId)
-                .orElseThrow(() -> new NotFoundException("Delivery partner not found"));
+                .orElseThrow(() -> new NotFoundException(PARTNER_NOT_FOUND));
 
         if (partner.getStatus() != DeliveryPartnerStatus.ACTIVE || !partner.isOnline()) {
             throw new IllegalStateException("Partner not available");
@@ -61,8 +62,8 @@ public class DeliveryService {
                 .restaurantLng(BigDecimal.ZERO)
                 .customerLat(BigDecimal.ZERO)
                 .customerLng(BigDecimal.ZERO)
-                .deliveryFeeAmount(4000L)
-                .partnerEarningAmount(3000L)
+                .deliveryFeeAmount(FeeConstants.DELIVERY_FEE_PAISE)
+                .partnerEarningAmount(FeeConstants.PARTNER_EARNING_PAISE)
                 .build();
 
         deliveryRepository.save(delivery);
@@ -82,7 +83,7 @@ public class DeliveryService {
         deliveryRepository.save(delivery);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
         order.transitionTo(OrderStatus.PICKED_UP);
         orderRepository.save(order);
     }
@@ -95,21 +96,17 @@ public class DeliveryService {
         deliveryRepository.save(delivery);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(ORDER_NOT_FOUND));
         order.transitionTo(OrderStatus.DELIVERED);
         orderRepository.save(order);
 
-        // Increment partner delivery count
-        DeliveryPartner partner = partnerRepository.findById(partnerId)
-                .orElseThrow(() -> new NotFoundException("Partner not found"));
-        partner.setTotalDeliveries(partner.getTotalDeliveries() + 1);
-        partnerRepository.save(partner);
+        partnerRepository.incrementDeliveryCount(partnerId);
     }
 
     @Transactional
     public void setOnlineStatus(UUID partnerId, boolean online) {
         DeliveryPartner partner = partnerRepository.findById(partnerId)
-                .orElseThrow(() -> new NotFoundException("Delivery partner not found"));
+                .orElseThrow(() -> new NotFoundException(PARTNER_NOT_FOUND));
         partner.setOnline(online);
         partnerRepository.save(partner);
         if (!online) {
@@ -120,13 +117,12 @@ public class DeliveryService {
     public PartnerLocationResponse getDriverLocation(UUID orderId) {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new NotFoundException("Delivery not found for order"));
-        String key = LOCATION_KEY_PREFIX + delivery.getPartnerId();
-        String value = redisTemplate.opsForValue().get(key);
-        if (value == null) return new PartnerLocationResponse(null, null, false);
+        String value = redisTemplate.opsForValue().get(LOCATION_KEY_PREFIX + delivery.getPartnerId());
+        if (value == null) {
+            return new PartnerLocationResponse(null, null, false);
+        }
         String[] parts = value.split(",");
-        return new PartnerLocationResponse(
-                new BigDecimal(parts[0]), new BigDecimal(parts[1]), true
-        );
+        return new PartnerLocationResponse(new BigDecimal(parts[0]), new BigDecimal(parts[1]), true);
     }
 
     private Delivery findDelivery(UUID orderId, UUID partnerId) {

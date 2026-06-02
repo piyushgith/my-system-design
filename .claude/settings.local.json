@@ -23,7 +23,8 @@
       "Bash(rtk git *)",
       "Bash(rtk npx *)",
       "Bash(mvn test *)",
-      "Bash(rtk wc *)"
+      "Bash(rtk wc *)",
+      "Bash(rtk tree *)"
     ]
   }
 }

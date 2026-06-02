@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -32,29 +31,14 @@ public class NotificationController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody SubmitNotificationRequest req) {
 
-        NotificationRequest notification = NotificationRequest.builder()
-                .idempotencyKey(idempotencyKey)
-                .category(req.getCategory())
-                .priority(req.getPriority())
-                .recipientUserId(req.getRecipientUserId())
-                .templateId(req.getTemplateId())
-                .templateVersion(req.getTemplateVersion())
-                .variables(req.getVariables())
-                .channelsOverride(req.getChannelsOverride())
-                .scheduledAt(req.getScheduledAt())
-                .expiresAt(req.getExpiresAt())
-                .producerService(req.getProducerContext() != null ? req.getProducerContext().getService() : null)
-                .producerTraceId(req.getProducerContext() != null ? req.getProducerContext().getTraceId() : null)
-                .build();
-
-        NotificationRequest saved = submissionService.submit(notification);
+        NotificationRequest saved = submissionService.submit(toEntity(idempotencyKey, req));
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(
                 SubmitNotificationResponse.builder()
                         .notificationId(saved.getNotificationId())
                         .status(saved.getStatus())
                         .idempotencyKey(saved.getIdempotencyKey())
-                        .estimatedDeliverySeconds(saved.getPriority().ordinal() == 0 ? 5 : 30)
+                        .estimatedDeliverySeconds(saved.getPriority().getEstimatedDeliverySeconds())
                         .build()
         );
     }
@@ -64,7 +48,7 @@ public class NotificationController {
         NotificationRequest notification = statusService.getNotification(notificationId);
         var attempts = statusService.getDeliveryAttempts(notificationId).stream()
                 .map(NotificationStatusResponse.DeliveryAttemptDto::from)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(NotificationStatusResponse.builder()
                 .notificationId(notification.getNotificationId())
@@ -89,5 +73,22 @@ public class NotificationController {
                 "status", NotificationStatus.CANCELLED,
                 "cancelledAt", Instant.now()
         ));
+    }
+
+    private NotificationRequest toEntity(String idempotencyKey, SubmitNotificationRequest req) {
+        return NotificationRequest.builder()
+                .idempotencyKey(idempotencyKey)
+                .category(req.getCategory())
+                .priority(req.getPriority())
+                .recipientUserId(req.getRecipientUserId())
+                .templateId(req.getTemplateId())
+                .templateVersion(req.getTemplateVersion())
+                .variables(req.getVariables())
+                .channelsOverride(req.getChannelsOverride())
+                .scheduledAt(req.getScheduledAt())
+                .expiresAt(req.getExpiresAt())
+                .producerService(req.getProducerContext() != null ? req.getProducerContext().getService() : null)
+                .producerTraceId(req.getProducerContext() != null ? req.getProducerContext().getTraceId() : null)
+                .build();
     }
 }

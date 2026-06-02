@@ -6,6 +6,7 @@ import com.test.notification.domain.enums.NotificationStatus;
 import com.test.notification.domain.enums.Priority;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -73,9 +74,9 @@ public class NotificationRequest {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    @Builder.Default
-    private Instant createdAt = Instant.now();
+    private Instant createdAt;
 
     @Column(name = "dispatched_at")
     private Instant dispatchedAt;

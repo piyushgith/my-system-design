@@ -43,13 +43,14 @@ public class KafkaConsumerConfig {
         );
         backOff.setMaxAttempts(retryProps.getMaxAttempts());
 
+        // Route to same partition as original record — preserves ordering, distributes DLT load.
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
                 (ConsumerRecord<?, ?> r, Exception e) -> {
                     log.error("Message sent to DLT after {} retries. topic={} key={} error={}",
                             retryProps.getMaxAttempts(), r.topic(), r.key(), e.getMessage());
                     return new org.apache.kafka.common.TopicPartition(
-                            props.getKafka().getTopics().getEmailDlt(), 0);
+                            props.getKafka().getTopics().getEmailDlt(), r.partition());
                 }
         );
 

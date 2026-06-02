@@ -9,5 +9,6 @@ import java.util.UUID;
 
 public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
     List<MenuItem> findByCategoryIdAndIsAvailableTrueOrderByDisplayOrder(UUID categoryId);
+    List<MenuItem> findByCategoryIdInAndIsAvailableTrueOrderByDisplayOrder(List<UUID> categoryIds);
     Optional<MenuItem> findByIdAndRestaurantId(UUID itemId, UUID restaurantId);
 }

@@ -3,6 +3,7 @@ package com.test.notification.domain.model;
 import com.test.notification.domain.enums.OutboxStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import java.util.UUID;
 @Table(
     name = "outbox_events",
     indexes = {
-        @Index(name = "idx_outbox_pending", columnList = "created_at")
+        @Index(name = "idx_outbox_status_created", columnList = "status, created_at")
     }
 )
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -34,9 +35,9 @@ public class OutboxEvent {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    @Builder.Default
-    private Instant createdAt = Instant.now();
+    private Instant createdAt;
 
     @Column(name = "published_at")
     private Instant publishedAt;
@@ -45,4 +46,8 @@ public class OutboxEvent {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private OutboxStatus status = OutboxStatus.PENDING;
+
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
+    private int retryCount = 0;
 }
