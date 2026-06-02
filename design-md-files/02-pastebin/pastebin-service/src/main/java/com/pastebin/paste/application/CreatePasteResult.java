@@ -1,7 +1,6 @@
 package com.pastebin.paste.application;
 
 import com.pastebin.shared.AccessLevel;
-import com.pastebin.shared.ExpiryPolicy;
 
 import java.time.Instant;
 
@@ -17,4 +16,8 @@ public record CreatePasteResult(
         long size,
         boolean idempotentReplay
 ) {
+    public CreatePasteResult asIdempotentReplay() {
+        return new CreatePasteResult(id, shortKey, url, rawUrl, language,
+                expiresAt, accessLevel, createdAt, size, true);
+    }
 }

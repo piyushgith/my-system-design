@@ -11,7 +11,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.nio.charset.StandardCharsets;
 
 @Component
-public class S3ContentStorage {
+public class S3ContentStorage implements ContentStorage {
 
     private final S3Client s3Client;
     private final S3Properties properties;

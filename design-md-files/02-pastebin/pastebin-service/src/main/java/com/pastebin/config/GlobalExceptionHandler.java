@@ -32,10 +32,14 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.GONE, "paste-gone", ex.getMessage(), request);
     }
 
-    @ExceptionHandler({PasteNotAccessibleException.class, PastePasswordRequiredException.class})
-    ResponseEntity<ProblemDetail> handleForbidden(RuntimeException ex, HttpServletRequest request) {
-        HttpStatus status = ex instanceof PastePasswordRequiredException ? HttpStatus.FORBIDDEN : HttpStatus.FORBIDDEN;
-        return problem(status, "paste-forbidden", ex.getMessage(), request);
+    @ExceptionHandler(PastePasswordRequiredException.class)
+    ResponseEntity<ProblemDetail> handlePasswordRequired(PastePasswordRequiredException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNAUTHORIZED, "password-required", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(PasteNotAccessibleException.class)
+    ResponseEntity<ProblemDetail> handleForbidden(PasteNotAccessibleException ex, HttpServletRequest request) {
+        return problem(HttpStatus.FORBIDDEN, "paste-forbidden", ex.getMessage(), request);
     }
 
     @ExceptionHandler({IdentityDomainException.class, DomainException.class})

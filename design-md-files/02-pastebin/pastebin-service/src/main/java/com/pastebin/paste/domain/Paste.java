@@ -92,7 +92,7 @@ public class Paste {
         }
         validateContentRouting(contentType, contentInline, contentS3Key, contentSize);
 
-        Instant expiresAt = expiryPolicy == ExpiryPolicy.NEVER ? null : expiryPolicyToInstant(expiryPolicy, now);
+        Instant expiresAt = expiryPolicy.toExpiryInstant(now);
         return new Paste(id, shortKey, title, language, contentType, contentInline, contentS3Key,
                 contentSize, contentHash, expiresAt, accessLevel, passwordHash, ownerId, now);
     }
@@ -180,16 +180,6 @@ public class Paste {
         if (contentType == ContentType.INLINE && contentInline != null && contentInline.getBytes(StandardCharsets.UTF_8).length != contentSize) {
             throw new DomainException("Inline content size mismatch");
         }
-    }
-
-    private static Instant expiryPolicyToInstant(ExpiryPolicy policy, Instant now) {
-        return switch (policy) {
-            case ONE_HOUR -> now.plusSeconds(3600);
-            case ONE_DAY -> now.plusSeconds(86400);
-            case ONE_WEEK -> now.plusSeconds(604800);
-            case ONE_MONTH -> now.plusSeconds(2592000);
-            case NEVER -> null;
-        };
     }
 
     public PasteId getId() { return id; }

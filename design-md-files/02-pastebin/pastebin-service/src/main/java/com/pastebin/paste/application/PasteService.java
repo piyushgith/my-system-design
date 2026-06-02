@@ -8,22 +8,14 @@ import com.pastebin.paste.domain.ContentRouter;
 import com.pastebin.paste.domain.ContentRoutingDecision;
 import com.pastebin.paste.domain.DomainException;
 import com.pastebin.paste.domain.Paste;
-import com.pastebin.paste.domain.PasteGoneException;
-import com.pastebin.paste.domain.PasteNotAccessibleException;
 import com.pastebin.paste.domain.PasteNotFoundException;
 import com.pastebin.paste.domain.ShortKeyGenerator;
 import com.pastebin.paste.infrastructure.cache.IdempotencyStore;
 import com.pastebin.paste.infrastructure.cache.PasteCache;
-import com.pastebin.paste.infrastructure.persistence.ExpiryScheduleEntity;
-import com.pastebin.paste.infrastructure.persistence.ExpiryScheduleJpaRepository;
-import com.pastebin.paste.infrastructure.persistence.PasteEntity;
-import com.pastebin.paste.infrastructure.persistence.PasteJpaRepository;
-import com.pastebin.paste.infrastructure.persistence.PasteMapper;
 import com.pastebin.paste.infrastructure.persistence.PasteRepository;
+import com.pastebin.paste.infrastructure.storage.ContentStorage;
 import com.pastebin.paste.infrastructure.storage.ContentStorageException;
-import com.pastebin.paste.infrastructure.storage.S3ContentStorage;
 import com.pastebin.shared.AccessLevel;
-import com.pastebin.shared.ContentType;
 import com.pastebin.shared.DeletionReason;
 import com.pastebin.shared.ExpiryPolicy;
 import com.pastebin.shared.PasteId;
@@ -33,11 +25,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -49,12 +41,9 @@ import java.util.UUID;
 public class PasteService {
 
     private final PasteRepository pasteRepository;
-    private final PasteJpaRepository pasteJpaRepository;
-    private final PasteMapper pasteMapper;
-    private final ExpiryScheduleJpaRepository expiryScheduleRepository;
     private final ShortKeyGenerator shortKeyGenerator;
     private final ContentRouter contentRouter;
-    private final S3ContentStorage s3ContentStorage;
+    private final ContentStorage contentStorage;
     private final PasteCache pasteCache;
     private final IdempotencyStore idempotencyStore;
     private final PasswordService passwordService;
@@ -66,12 +55,9 @@ public class PasteService {
     private final MeterRegistry meterRegistry;
 
     public PasteService(PasteRepository pasteRepository,
-                        PasteJpaRepository pasteJpaRepository,
-                        PasteMapper pasteMapper,
-                        ExpiryScheduleJpaRepository expiryScheduleRepository,
                         ShortKeyGenerator shortKeyGenerator,
                         ContentRouter contentRouter,
-                        S3ContentStorage s3ContentStorage,
+                        ContentStorage contentStorage,
                         PasteCache pasteCache,
                         IdempotencyStore idempotencyStore,
                         PasswordService passwordService,
@@ -80,12 +66,9 @@ public class PasteService {
                         ObjectMapper objectMapper,
                         MeterRegistry meterRegistry) {
         this.pasteRepository = pasteRepository;
-        this.pasteJpaRepository = pasteJpaRepository;
-        this.pasteMapper = pasteMapper;
-        this.expiryScheduleRepository = expiryScheduleRepository;
         this.shortKeyGenerator = shortKeyGenerator;
         this.contentRouter = contentRouter;
-        this.s3ContentStorage = s3ContentStorage;
+        this.contentStorage = contentStorage;
         this.pasteCache = pasteCache;
         this.idempotencyStore = idempotencyStore;
         this.passwordService = passwordService;
@@ -102,19 +85,21 @@ public class PasteService {
         return createTimer.record(() -> doCreatePaste(command, ownerId));
     }
 
+    private Optional<CreatePasteResult> checkIdempotency(String key) {
+        if (key == null || key.isBlank()) return Optional.empty();
+        Optional<CreatePasteResult> cached = idempotencyStore.get(key, CreatePasteResult.class);
+        if (cached.isPresent()) return cached.map(CreatePasteResult::asIdempotentReplay);
+        if (!idempotencyStore.tryAcquire(key)) {
+            return Optional.of(idempotencyStore.get(key, CreatePasteResult.class)
+                    .orElseThrow(() -> new DomainException("Duplicate paste creation in progress")));
+        }
+        return Optional.empty();
+    }
+
     private CreatePasteResult doCreatePaste(CreatePasteCommand command, Optional<UserId> ownerId) {
-        if (command.idempotencyKey() != null && !command.idempotencyKey().isBlank()) {
-            Optional<CreatePasteResult> cached = idempotencyStore.get(command.idempotencyKey(), CreatePasteResult.class);
-            if (cached.isPresent()) {
-                CreatePasteResult result = cached.get();
-                return new CreatePasteResult(result.id(), result.shortKey(), result.url(), result.rawUrl(),
-                        result.language(), result.expiresAt(), result.accessLevel(), result.createdAt(),
-                        result.size(), true);
-            }
-            if (!idempotencyStore.tryAcquire(command.idempotencyKey())) {
-                return idempotencyStore.get(command.idempotencyKey(), CreatePasteResult.class)
-                        .orElseThrow(() -> new DomainException("Duplicate paste creation in progress"));
-            }
+        Optional<CreatePasteResult> idempotent = checkIdempotency(command.idempotencyKey());
+        if (idempotent.isPresent()) {
+            return idempotent.get();
         }
 
         Instant now = Instant.now();
@@ -123,12 +108,12 @@ public class PasteService {
         String contentHash = ContentHasher.sha256(command.content());
         byte[] contentBytes = command.content().getBytes(StandardCharsets.UTF_8);
 
-        String s3Key = s3ContentStorage.buildKey(pasteId.toString());
+        String s3Key = contentStorage.buildKey(pasteId.toString());
         ContentRoutingDecision routing = contentRouter.route(command.content(), s3Key);
 
-        if (routing.contentType() == ContentType.S3) {
+        if (routing.contentType() == com.pastebin.shared.ContentType.S3) {
             try {
-                s3ContentStorage.upload(s3Key, command.content());
+                contentStorage.upload(s3Key, command.content());
             } catch (Exception e) {
                 throw new ContentStorageException("Failed to upload paste content", e);
             }
@@ -158,7 +143,7 @@ public class PasteService {
         );
 
         pasteRepository.save(paste);
-        scheduleExpiry(paste);
+        pasteRepository.scheduleExpiry(paste);
 
         CreatePasteResult result = toCreateResult(paste, false);
         if (command.idempotencyKey() != null && !command.idempotencyKey().isBlank()) {
@@ -178,7 +163,6 @@ public class PasteService {
         Optional<PasteView> cached = pasteCache.get(key);
         if (cached.isPresent()) {
             meterRegistry.counter("paste.read.cache_hit").increment();
-            // cache invariant: only PUBLIC + !passwordProtected pastes are stored
             return cached.get();
         }
         meterRegistry.counter("paste.read.cache_miss").increment();
@@ -188,13 +172,6 @@ public class PasteService {
                     pasteCache.putNegative(key);
                     return new PasteNotFoundException("No paste found with key '" + key + "'");
                 });
-
-        if (paste.isDeleted()) {
-            throw new PasteGoneException("Paste has been deleted");
-        }
-        if (paste.isExpired(Instant.now())) {
-            throw new PasteGoneException("Paste has expired");
-        }
 
         boolean passwordVerified = !paste.requiresPassword()
                 || password.filter(p -> passwordService.matches(p, paste.getPasswordHash())).isPresent();
@@ -210,8 +187,7 @@ public class PasteService {
 
     @Transactional(readOnly = true)
     public String getRawContent(String key, Optional<UserId> requesterId, Optional<String> password) {
-        PasteView view = getPaste(key, requesterId, password);
-        return view.content();
+        return readTimer.record(() -> doGetPaste(key, requesterId, password)).content();
     }
 
     @Transactional
@@ -221,7 +197,7 @@ public class PasteService {
             return;
         }
         if (paste.getOwnerId() == null || !paste.getOwnerId().equals(ownerId)) {
-            throw new PasteNotAccessibleException("Only the paste owner can delete this paste");
+            throw new com.pastebin.paste.domain.PasteNotAccessibleException("Only the paste owner can delete this paste");
         }
         paste.softDelete(DeletionReason.USER_REQUESTED, Instant.now());
         pasteRepository.save(paste);
@@ -236,7 +212,7 @@ public class PasteService {
 
     @Transactional(readOnly = true)
     public PasteListResult listUserPastes(UserId ownerId, String cursor, int limit, boolean includeExpired) {
-        int pageSize = Math.min(Math.max(limit, 1), 100);
+        int pageSize = Math.clamp(limit, 1, 100);
         Instant cursorCreatedAt = null;
         UUID cursorId = null;
         if (cursor != null && !cursor.isBlank()) {
@@ -245,27 +221,23 @@ public class PasteService {
             cursorId = decoded.id();
         }
 
-        List<PasteEntity> entities = pasteJpaRepository.findUserPastes(
-                ownerId.value(),
-                Instant.now(),
-                includeExpired,
-                cursorCreatedAt,
-                cursorId,
-                PageRequest.of(0, pageSize + 1)
+        List<Paste> pastes = pasteRepository.findByOwner(
+                ownerId, Instant.now(), includeExpired,
+                cursorCreatedAt, cursorId, pageSize + 1
         );
 
-        boolean hasMore = entities.size() > pageSize;
-        List<PasteEntity> page = hasMore ? entities.subList(0, pageSize) : entities;
+        boolean hasMore = pastes.size() > pageSize;
+        List<Paste> page = hasMore ? pastes.subList(0, pageSize) : pastes;
         List<PasteSummary> items = page.stream().map(this::toSummary).toList();
         String nextCursor = hasMore && !page.isEmpty()
-                ? encodeCursor(page.get(page.size() - 1).getCreatedAt(), page.get(page.size() - 1).getId())
+                ? encodeCursor(page.get(page.size() - 1).getCreatedAt(), page.get(page.size() - 1).getId().value())
                 : null;
         return new PasteListResult(items, nextCursor, hasMore);
     }
 
     @Transactional
     public void markExpired(PasteId pasteId, DeletionReason reason) {
-        Paste paste = pasteRepository.findByShortKey(loadShortKey(pasteId))
+        Paste paste = pasteRepository.findById(pasteId)
                 .orElseThrow(() -> new PasteNotFoundException("Paste not found for expiry: " + pasteId));
         if (paste.isDeleted()) {
             return;
@@ -281,29 +253,11 @@ public class PasteService {
         ));
     }
 
-    private ShortKey loadShortKey(PasteId pasteId) {
-        return pasteJpaRepository.findById(pasteId.value())
-                .map(entity -> new ShortKey(entity.getShortKey()))
-                .orElseThrow(() -> new PasteNotFoundException("Paste not found: " + pasteId));
-    }
-
-    private void scheduleExpiry(Paste paste) {
-        if (paste.getExpiresAt() == null) {
-            return;
-        }
-        ExpiryScheduleEntity schedule = new ExpiryScheduleEntity();
-        schedule.setPasteId(paste.getId().value());
-        schedule.setExpiresAt(paste.getExpiresAt());
-        schedule.setProcessed(false);
-        schedule.setCreatedAt(Instant.now());
-        expiryScheduleRepository.save(schedule);
-    }
-
     private String resolveContent(Paste paste) {
-        if (paste.getContentType() == ContentType.INLINE) {
+        if (paste.getContentType() == com.pastebin.shared.ContentType.INLINE) {
             return paste.getContentInline();
         }
-        return s3ContentStorage.download(paste.getContentS3Key());
+        return contentStorage.download(paste.getContentS3Key());
     }
 
     private CreatePasteResult toCreateResult(Paste paste, boolean idempotentReplay) {
@@ -342,25 +296,27 @@ public class PasteService {
         );
     }
 
-    private PasteSummary toSummary(PasteEntity entity) {
+    private PasteSummary toSummary(Paste paste) {
         return new PasteSummary(
-                entity.getShortKey(),
-                entity.getTitle(),
-                entity.getLanguage(),
-                entity.getAccessLevel(),
-                entity.getViewCount(),
-                entity.getContentSize(),
-                entity.getExpiresAt(),
-                entity.getCreatedAt()
+                paste.getShortKey().value(),
+                paste.getTitle(),
+                paste.getLanguage(),
+                paste.getAccessLevel(),
+                paste.getViewCount(),
+                paste.getContentSize(),
+                paste.getExpiresAt(),
+                paste.getCreatedAt()
         );
     }
 
     private ExpiryPolicy inferExpiryPolicy(Paste paste) {
         if (paste.getExpiresAt() == null) return ExpiryPolicy.NEVER;
-        long seconds = paste.getExpiresAt().getEpochSecond() - paste.getCreatedAt().getEpochSecond();
-        if (seconds <= 3600) return ExpiryPolicy.ONE_HOUR;
-        if (seconds <= 86400) return ExpiryPolicy.ONE_DAY;
-        if (seconds <= 604800) return ExpiryPolicy.ONE_WEEK;
+        Duration elapsed = Duration.between(paste.getCreatedAt(), paste.getExpiresAt());
+        for (ExpiryPolicy policy : ExpiryPolicy.values()) {
+            if (policy != ExpiryPolicy.NEVER && elapsed.compareTo(policy.duration()) <= 0) {
+                return policy;
+            }
+        }
         return ExpiryPolicy.ONE_MONTH;
     }
 

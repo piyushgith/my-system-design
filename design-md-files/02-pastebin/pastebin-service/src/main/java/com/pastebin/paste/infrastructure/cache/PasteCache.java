@@ -13,8 +13,8 @@ import java.util.Optional;
 @Component
 public class PasteCache {
 
-    private static final String PASTE_PREFIX = "paste:";
-    private static final String NEGATIVE_PREFIX = "paste:missing:";
+    private static final String PREFIX = "paste:";
+    private static final String NEGATIVE_SENTINEL = "__MISS__";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -31,28 +31,24 @@ public class PasteCache {
     }
 
     public Optional<PasteView> get(String shortKey) {
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(NEGATIVE_PREFIX + shortKey))) {
-            return Optional.empty();
-        }
-        String cached = redisTemplate.opsForValue().get(PASTE_PREFIX + shortKey);
-        if (cached == null) {
+        String value = redisTemplate.opsForValue().get(PREFIX + shortKey);
+        if (value == null || NEGATIVE_SENTINEL.equals(value)) {
             return Optional.empty();
         }
         try {
-            return Optional.of(objectMapper.readValue(cached, PasteView.class));
+            return Optional.of(objectMapper.readValue(value, PasteView.class));
         } catch (JsonProcessingException e) {
-            redisTemplate.delete(PASTE_PREFIX + shortKey);
+            redisTemplate.delete(PREFIX + shortKey);
             return Optional.empty();
         }
     }
 
     public void put(String shortKey, PasteView view, Instant expiresAt) {
         try {
-            Duration ttl = computeTtl(expiresAt);
             redisTemplate.opsForValue().set(
-                    PASTE_PREFIX + shortKey,
+                    PREFIX + shortKey,
                     objectMapper.writeValueAsString(view),
-                    ttl
+                    computeTtl(expiresAt)
             );
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize paste cache entry", e);
@@ -60,12 +56,12 @@ public class PasteCache {
     }
 
     public void putNegative(String shortKey) {
-        redisTemplate.opsForValue().set(NEGATIVE_PREFIX + shortKey, "1", Duration.ofSeconds(negativeTtlSeconds));
+        redisTemplate.opsForValue().set(PREFIX + shortKey, NEGATIVE_SENTINEL,
+                Duration.ofSeconds(negativeTtlSeconds));
     }
 
     public void evict(String shortKey) {
-        redisTemplate.delete(PASTE_PREFIX + shortKey);
-        redisTemplate.delete(NEGATIVE_PREFIX + shortKey);
+        redisTemplate.delete(PREFIX + shortKey);
     }
 
     private Duration computeTtl(Instant expiresAt) {
