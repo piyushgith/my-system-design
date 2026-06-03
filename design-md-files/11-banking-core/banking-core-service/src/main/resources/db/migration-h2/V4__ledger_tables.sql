@@ -13,7 +13,7 @@ CREATE TABLE ledger.transactions (
     initiated_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     posted_at           TIMESTAMP WITH TIME ZONE,
     reversal_of         VARCHAR(30),
-    response_snapshot   VARCHAR(8000)
+    response_snapshot   JSON
 );
 
 CREATE TABLE ledger.journal_entries (

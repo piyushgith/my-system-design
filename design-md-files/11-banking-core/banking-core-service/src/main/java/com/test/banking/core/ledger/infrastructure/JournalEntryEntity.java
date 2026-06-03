@@ -6,6 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,12 +31,14 @@ public class JournalEntryEntity {
     private String glCode;
 
     @Column(nullable = false, length = 1, columnDefinition = "CHAR(1)")
+    @JdbcTypeCode(SqlTypes.CHAR)
     private String entryType;
 
     @Column(nullable = false)
     private long amountPaise;
 
     @Column(nullable = false, length = 3, columnDefinition = "CHAR(3)")
+    @JdbcTypeCode(SqlTypes.CHAR)
     private String currency;
 
     @Column(nullable = false)

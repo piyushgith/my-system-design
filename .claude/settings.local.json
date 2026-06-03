@@ -24,7 +24,12 @@
       "Bash(rtk npx *)",
       "Bash(mvn test *)",
       "Bash(rtk wc *)",
-      "Bash(rtk tree *)"
+      "Bash(rtk tree *)",
+      "Bash(mvn -q -o clean compile)",
+      "Bash(mvn -q clean compile)",
+      "Bash(sed -n '1,18p' src/main/resources/db/migration/V4__ledger_tables.sql)",
+      "Bash(sed -n '1,18p' src/main/resources/db/migration-h2/V4__ledger_tables.sql)",
+      "Bash(mvn -o test)"
     ]
   }
 }

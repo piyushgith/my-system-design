@@ -8,7 +8,7 @@ CREATE TABLE audit.audit_events (
     actor_ip        VARCHAR(45),
     session_id      VARCHAR(100),
     correlation_id  VARCHAR(100),
-    old_state       VARCHAR(8000),
-    new_state       VARCHAR(8000),
+    old_state       JSON,
+    new_state       JSON,
     occurred_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

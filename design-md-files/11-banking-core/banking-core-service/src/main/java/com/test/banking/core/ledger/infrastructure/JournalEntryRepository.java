@@ -12,8 +12,6 @@ import java.util.UUID;
 
 public interface JournalEntryRepository extends JpaRepository<JournalEntryEntity, UUID> {
 
-    List<JournalEntryEntity> findByTxnId(String txnId);
-
     @Query("""
             SELECT j FROM JournalEntryEntity j
             WHERE j.accountId = :accountId

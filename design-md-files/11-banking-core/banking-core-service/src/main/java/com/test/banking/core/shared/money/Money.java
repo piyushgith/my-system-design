@@ -19,6 +19,14 @@ public record Money(long paise) {
         return new Money(paise);
     }
 
+    /**
+     * Factory for signed amounts such as running/overdraft balances, which may legitimately be
+     * negative. Unlike {@link #ofPaise(long)} this does not reject negatives.
+     */
+    public static Money ofSignedPaise(long paise) {
+        return new Money(paise);
+    }
+
     public BigDecimal toRupees() {
         return BigDecimal.valueOf(paise, 2);
     }

@@ -8,9 +8,9 @@ public interface AccountPublicApi {
 
     AccountBalanceDto getBalance(String accountId);
 
-    void creditAccount(String accountId, long amountPaise);
+    AccountBalanceDto creditAccount(String accountId, long amountPaise);
 
-    void debitAccount(String accountId, long amountPaise);
+    AccountBalanceDto debitAccount(String accountId, long amountPaise);
 
     void assertAccountActive(String accountId);
 

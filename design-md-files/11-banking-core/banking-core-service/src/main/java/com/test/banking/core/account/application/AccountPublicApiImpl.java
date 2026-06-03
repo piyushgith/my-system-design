@@ -28,8 +28,9 @@ public class AccountPublicApiImpl implements AccountPublicApi {
     @Transactional(readOnly = true)
     public AccountBalanceDto getBalance(String accountId) {
         AccountEntity account = load(accountId);
-        availableBalanceCalculator.refreshAvailableBalance(account);
-        return toDto(account);
+        // Read path: compute available without mutating the managed entity in a read-only tx.
+        long availablePaise = availableBalanceCalculator.computeAvailablePaise(account);
+        return new AccountBalanceDto(account.getAccountId(), account.getCurrentBalancePaise(), availablePaise);
     }
 
     @Override
@@ -42,18 +43,19 @@ public class AccountPublicApiImpl implements AccountPublicApi {
 
     @Override
     @Transactional
-    public void creditAccount(String accountId, long amountPaise) {
+    public AccountBalanceDto creditAccount(String accountId, long amountPaise) {
         AccountEntity account = loadForUpdate(accountId);
         assertActive(account);
         account.setCurrentBalancePaise(account.getCurrentBalancePaise() + amountPaise);
         availableBalanceCalculator.refreshAvailableBalance(account);
         account.setLastTxnDate(LocalDate.now());
         account.setUpdatedAt(Instant.now());
+        return toDto(account);
     }
 
     @Override
     @Transactional
-    public void debitAccount(String accountId, long amountPaise) {
+    public AccountBalanceDto debitAccount(String accountId, long amountPaise) {
         AccountEntity account = loadForUpdate(accountId);
         assertActive(account);
         availableBalanceCalculator.refreshAvailableBalance(account);
@@ -65,6 +67,7 @@ public class AccountPublicApiImpl implements AccountPublicApi {
         availableBalanceCalculator.refreshAvailableBalance(account);
         account.setLastTxnDate(LocalDate.now());
         account.setUpdatedAt(Instant.now());
+        return toDto(account);
     }
 
     @Override

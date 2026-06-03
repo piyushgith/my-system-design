@@ -56,7 +56,7 @@ public class TransactionService {
         validateRemitterIfsc(request.remitterIfsc());
         String fingerprint = requestFingerprint(request);
         idempotencyService.assertPayloadMatches(idempotencyKey, fingerprint);
-        return idempotencyService.execute(idempotencyKey, fingerprint, DepositResponse.class,
+        return idempotencyService.execute(idempotencyKey, DepositResponse.class,
                 () -> executeDeposit(request, idempotencyKey));
     }
 
@@ -67,7 +67,7 @@ public class TransactionService {
         accountAccessValidator.assertCanAccessAccount(request.toAccountId());
         String fingerprint = requestFingerprint(request);
         idempotencyService.assertPayloadMatches(idempotencyKey, fingerprint);
-        return idempotencyService.execute(idempotencyKey, fingerprint, TransferResponse.class,
+        return idempotencyService.execute(idempotencyKey, TransferResponse.class,
                 () -> executeTransfer(request, idempotencyKey));
     }
 
@@ -129,7 +129,7 @@ public class TransactionService {
                 entry.getNarration(),
                 entry.getPostingDate(),
                 entry.getValueDate(),
-                Money.ofPaise(runningBalancePaise).toRupees());
+                Money.ofSignedPaise(runningBalancePaise).toRupees());
     }
 
     private DepositResponse executeDeposit(DepositRequest request, String idempotencyKey) {
@@ -140,7 +140,7 @@ public class TransactionService {
         var posted = postingService.postDeposit(request.accountId(), amountPaise, valueDate,
                 request.narration(), request.referenceNumber(), idempotencyKey, fingerprint, null);
 
-        AccountBalanceDto after = accountPublicApi.lockAndGetBalance(request.accountId());
+        AccountBalanceDto after = posted.primaryBalance();
         DepositResponse response = new DepositResponse(posted.txnId(), "POSTED", request.accountId(),
                 Money.ofPaise(after.currentBalancePaise()).toRupees(), valueDate, valueDate);
         postingService.updateResponseSnapshot(posted.txnId(), response);
@@ -155,8 +155,8 @@ public class TransactionService {
         var posted = postingService.postTransfer(request.fromAccountId(), request.toAccountId(), amountPaise,
                 valueDate, request.narration(), idempotencyKey, fingerprint, null);
 
-        AccountBalanceDto fromAfter = accountPublicApi.lockAndGetBalance(request.fromAccountId());
-        AccountBalanceDto toAfter = accountPublicApi.lockAndGetBalance(request.toAccountId());
+        AccountBalanceDto fromAfter = posted.primaryBalance();
+        AccountBalanceDto toAfter = posted.secondaryBalance();
 
         TransferResponse response = new TransferResponse(posted.txnId(), "POSTED",
                 Money.ofPaise(fromAfter.currentBalancePaise()).toRupees(),

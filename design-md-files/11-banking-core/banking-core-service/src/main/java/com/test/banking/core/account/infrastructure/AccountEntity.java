@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,6 +35,7 @@ public class AccountEntity {
     private String status;
 
     @Column(nullable = false, length = 3, columnDefinition = "CHAR(3)")
+    @JdbcTypeCode(SqlTypes.CHAR)
     private String currency;
 
     @Column(nullable = false)

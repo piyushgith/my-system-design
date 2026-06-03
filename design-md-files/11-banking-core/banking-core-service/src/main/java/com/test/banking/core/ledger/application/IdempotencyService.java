@@ -23,8 +23,7 @@ public class IdempotencyService {
         this.objectMapper = objectMapper;
     }
 
-    public <T> T execute(String idempotencyKey, String requestFingerprint, Class<T> responseType,
-                         Supplier<T> action) {
+    public <T> T execute(String idempotencyKey, Class<T> responseType, Supplier<T> action) {
         String initiatedBy = SecurityUtils.currentUserId();
         Optional<T> cached = findCachedResponse(idempotencyKey, initiatedBy, responseType);
         if (cached.isPresent()) {
@@ -81,10 +80,6 @@ public class IdempotencyService {
                                 "Idempotency key already used with a different request payload");
                     }
                 });
-    }
-
-    public <T> Optional<T> findCachedResponse(String idempotencyKey, Class<T> type) {
-        return findCachedResponse(idempotencyKey, SecurityUtils.currentUserId(), type);
     }
 
     private <T> Optional<T> findCachedResponse(String idempotencyKey, String initiatedBy, Class<T> type) {

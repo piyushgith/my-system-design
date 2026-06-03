@@ -1,13 +1,17 @@
 package com.test.banking.core.ledger.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.banking.core.account.api.AccountPublicApi;
+import com.test.banking.core.account.api.dto.AccountBalanceDto;
 import com.test.banking.core.ledger.infrastructure.JournalEntryEntity;
 import com.test.banking.core.ledger.infrastructure.JournalEntryRepository;
 import com.test.banking.core.ledger.infrastructure.TransactionEntity;
 import com.test.banking.core.ledger.infrastructure.TransactionRepository;
 import com.test.banking.core.shared.audit.AuditService;
 import com.test.banking.core.shared.exception.BusinessRuleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import com.test.banking.core.shared.security.SecurityUtils;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,8 @@ import java.util.UUID;
 
 @Service
 public class PostingService {
+
+    private static final Logger log = LoggerFactory.getLogger(PostingService.class);
 
     private final TransactionRepository transactionRepository;
     private final JournalEntryRepository journalEntryRepository;
@@ -49,7 +55,6 @@ public class PostingService {
                                          String narration, String referenceNumber, String idempotencyKey,
                                          String requestFingerprint, Object responsePayload) {
         accountPublicApi.assertAccountActive(accountId);
-        accountPublicApi.lockAndGetBalance(accountId);
 
         String txnId = newTxnId();
         TransactionEntity txn = createTransaction(txnId, "DEPOSIT", amountPaise, valueDate, narration,
@@ -59,12 +64,15 @@ public class PostingService {
         entries.add(journalEntry(txnId, accountId, null, 'C', amountPaise, valueDate, narration));
         entries.add(journalEntry(txnId, null, clearingGlCode, 'D', amountPaise, valueDate, narration));
         journalEntryRepository.saveAll(entries);
-        assertDoubleEntryBalanced(txnId);
+        assertDoubleEntryBalanced(txnId, entries);
 
-        accountPublicApi.creditAccount(accountId, amountPaise);
+        // creditAccount holds the pessimistic lock and returns the post-credit balance,
+        // avoiding a redundant SELECT ... FOR UPDATE in the caller.
+        AccountBalanceDto balanceAfter = accountPublicApi.creditAccount(accountId, amountPaise);
         finalizeTransaction(txn, responsePayload);
         auditService.record("DEPOSIT_POSTED", "TRANSACTION", txnId, responsePayload);
-        return new PostedTransaction(txnId, valueDate, txn);
+        log.info("Deposit posted txnId={} accountId={} amountPaise={}", txnId, accountId, amountPaise);
+        return new PostedTransaction(txnId, valueDate, txn, balanceAfter, null);
     }
 
     @Transactional
@@ -88,13 +96,17 @@ public class PostingService {
         entries.add(journalEntry(txnId, fromAccountId, "GL-TRANSFER", 'D', amountPaise, valueDate, narration));
         entries.add(journalEntry(txnId, toAccountId, "GL-TRANSFER", 'C', amountPaise, valueDate, narration));
         journalEntryRepository.saveAll(entries);
-        assertDoubleEntryBalanced(txnId);
+        assertDoubleEntryBalanced(txnId, entries);
 
-        accountPublicApi.debitAccount(fromAccountId, amountPaise);
-        accountPublicApi.creditAccount(toAccountId, amountPaise);
+        // debit/credit hold the per-account lock and return post-mutation balances,
+        // avoiding redundant SELECT ... FOR UPDATE reads in the caller.
+        AccountBalanceDto fromAfter = accountPublicApi.debitAccount(fromAccountId, amountPaise);
+        AccountBalanceDto toAfter = accountPublicApi.creditAccount(toAccountId, amountPaise);
         finalizeTransaction(txn, responsePayload);
         auditService.record("TRANSFER_POSTED", "TRANSACTION", txnId, responsePayload);
-        return new PostedTransaction(txnId, valueDate, txn);
+        log.info("Transfer posted txnId={} from={} to={} amountPaise={}",
+                txnId, fromAccountId, toAccountId, amountPaise);
+        return new PostedTransaction(txnId, valueDate, txn, fromAfter, toAfter);
     }
 
     private TransactionEntity createTransaction(String txnId, String txnType, long amountPaise,
@@ -123,7 +135,9 @@ public class PostingService {
         if (responsePayload != null) {
             try {
                 txn.setResponseSnapshot(objectMapper.writeValueAsString(responsePayload));
-            } catch (Exception ignored) {
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize response snapshot for txn {}: {}",
+                        txn.getTxnId(), e.getMessage());
                 txn.setResponseSnapshot("{}");
             }
         }
@@ -160,10 +174,10 @@ public class PostingService {
         return SecurityUtils.currentUserId();
     }
 
-    private void assertDoubleEntryBalanced(String txnId) {
+    private void assertDoubleEntryBalanced(String txnId, List<JournalEntryEntity> entries) {
         long debits = 0L;
         long credits = 0L;
-        for (JournalEntryEntity entry : journalEntryRepository.findByTxnId(txnId)) {
+        for (JournalEntryEntity entry : entries) {
             if ("D".equals(entry.getEntryType())) {
                 debits += entry.getAmountPaise();
             } else {
@@ -171,11 +185,13 @@ public class PostingService {
             }
         }
         if (debits != credits) {
+            log.error("Double-entry imbalance txnId={} debits={} credits={}", txnId, debits, credits);
             throw new BusinessRuleException("LEDGER_IMBALANCE",
                     "Double-entry imbalance for transaction " + txnId);
         }
     }
 
-    public record PostedTransaction(String txnId, LocalDate valueDate, TransactionEntity transaction) {
+    public record PostedTransaction(String txnId, LocalDate valueDate, TransactionEntity transaction,
+                                    AccountBalanceDto primaryBalance, AccountBalanceDto secondaryBalance) {
     }
 }
