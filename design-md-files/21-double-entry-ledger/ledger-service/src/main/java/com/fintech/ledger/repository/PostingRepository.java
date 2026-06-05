@@ -1,7 +1,6 @@
 package com.fintech.ledger.repository;
 
 import com.fintech.ledger.domain.Posting;
-import com.fintech.ledger.domain.PostingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,6 +27,4 @@ public interface PostingRepository extends JpaRepository<Posting, UUID> {
             @Param("from") Instant from,
             @Param("to") Instant to,
             Pageable pageable);
-
-    boolean existsByIdempotencyKey(String idempotencyKey);
 }

@@ -25,25 +25,26 @@ public class BalanceService {
     @Transactional(readOnly = true)
     public BalanceResponse getCurrentBalance(UUID accountId) {
         Account account = findAccount(accountId);
-        long balance = computeBalance(accountId, account.getNormalBalance());
-        return new BalanceResponse(accountId, balance, account.getCurrency(),
-                account.getNormalBalance(), "COMPUTED", Instant.now());
+        long balance = netBalance(
+                nullToZero(journalEntryRepository.sumByAccountAndDirection(accountId, Direction.DEBIT)),
+                nullToZero(journalEntryRepository.sumByAccountAndDirection(accountId, Direction.CREDIT)),
+                account.getNormalBalance());
+        return balanceResponse(account, balance, Instant.now());
     }
 
     @Transactional(readOnly = true)
     public BalanceResponse getBalanceAsOf(UUID accountId, Instant asOf) {
         Account account = findAccount(accountId);
-        long debitSum = nullToZero(journalEntryRepository.sumByAccountAndDirectionAsOf(accountId, Direction.DEBIT, asOf));
-        long creditSum = nullToZero(journalEntryRepository.sumByAccountAndDirectionAsOf(accountId, Direction.CREDIT, asOf));
-        long balance = netBalance(debitSum, creditSum, account.getNormalBalance());
-        return new BalanceResponse(accountId, balance, account.getCurrency(),
-                account.getNormalBalance(), "COMPUTED", asOf);
+        long balance = netBalance(
+                nullToZero(journalEntryRepository.sumByAccountAndDirectionAsOf(accountId, Direction.DEBIT, asOf)),
+                nullToZero(journalEntryRepository.sumByAccountAndDirectionAsOf(accountId, Direction.CREDIT, asOf)),
+                account.getNormalBalance());
+        return balanceResponse(account, balance, asOf);
     }
 
-    private long computeBalance(UUID accountId, Direction normalBalance) {
-        long debitSum = nullToZero(journalEntryRepository.sumByAccountAndDirection(accountId, Direction.DEBIT));
-        long creditSum = nullToZero(journalEntryRepository.sumByAccountAndDirection(accountId, Direction.CREDIT));
-        return netBalance(debitSum, creditSum, normalBalance);
+    private BalanceResponse balanceResponse(Account account, long balance, Instant asOf) {
+        return new BalanceResponse(account.getAccountId(), balance, account.getCurrency(),
+                account.getNormalBalance(), "COMPUTED", asOf);
     }
 
     private long nullToZero(Long value) {

@@ -50,8 +50,8 @@ public class AccountService {
         return AccountResponse.from(accountRepository.save(account));
     }
 
-    // Package-visible for PostingService validation
-    Account findById(UUID accountId) {
+    // Loads an account or throws; shared by the read and status-update paths.
+    private Account findById(UUID accountId) {
         return accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
     }

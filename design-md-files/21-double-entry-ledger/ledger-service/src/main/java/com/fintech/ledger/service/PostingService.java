@@ -17,11 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,44 +29,30 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PostingService {
 
-    private static final String IDEMPOTENCY_KEY_PREFIX = "idempotency:";
-    private static final Duration IDEMPOTENCY_TTL = Duration.ofHours(24);
-
     private final PostingRepository postingRepository;
     private final AccountRepository accountRepository;
-    private final StringRedisTemplate redisTemplate;
+    private final IdempotencyService idempotencyService;
 
     @Transactional
     public PostingCreationResult createPosting(CreatePostingRequest req) {
-        // 1. Check Redis idempotency cache (fast short-circuit)
-        String redisKey = IDEMPOTENCY_KEY_PREFIX + req.idempotencyKey();
-        PostingResponse cached = resolveFromRedis(redisKey);
-        if (cached != null) {
-            log.debug("Idempotency HIT (Redis): {}", req.idempotencyKey());
-            return new PostingCreationResult(cached, false);
-        }
-
-        // 2. DB-level idempotency check (Redis miss — DB is fallback)
-        Optional<Posting> existing = postingRepository.findByIdempotencyKey(req.idempotencyKey());
+        // 1. Idempotency short-circuit (Redis pointer cache, DB unique constraint as backstop)
+        Optional<Posting> existing = idempotencyService.findExisting(req.idempotencyKey());
         if (existing.isPresent()) {
-            log.debug("Idempotency HIT (DB): {}", req.idempotencyKey());
-            warmRedisCache(redisKey, existing.get().getPostingId());
             return new PostingCreationResult(PostingResponse.from(existing.get()), false);
         }
 
-        // 3. Validate invariant: debit sum == credit sum per currency
+        // 2. Validate invariant: debit sum == credit sum per currency
         validateInvariant(req.legs());
 
-        // 4. Validate all accounts exist and are ACTIVE
+        // 3. Validate all accounts exist and are ACTIVE
         List<UUID> accountIds = req.legs().stream().map(PostingLegRequest::accountId).distinct().toList();
         validateAccountIds(accountIds);
 
-        // 5. Build and persist posting + journal entries atomically
-        Posting posting = buildPosting(req);
-        Posting saved = postingRepository.save(posting);
+        // 4. Build and persist posting + journal entries atomically
+        Posting saved = postingRepository.save(buildPosting(req));
 
-        // 6. Warm Redis cache after commit
-        warmRedisCache(redisKey, saved.getPostingId());
+        // 5. Best-effort cache warm (pre-commit; a stale pointer self-heals on read if the tx rolls back)
+        idempotencyService.warm(req.idempotencyKey(), saved.getPostingId());
 
         log.info("Posting created: {} idempotencyKey={}", saved.getPostingId(), req.idempotencyKey());
         return new PostingCreationResult(PostingResponse.from(saved), true);
@@ -77,13 +61,7 @@ public class PostingService {
     @Transactional
     public PostingResponse reversePosting(UUID postingId, ReversePostingRequest req) {
         // Idempotency on reversal as well
-        String redisKey = IDEMPOTENCY_KEY_PREFIX + req.idempotencyKey();
-        PostingResponse cached = resolveFromRedis(redisKey);
-        if (cached != null) {
-            return cached;
-        }
-
-        Optional<Posting> existingReversal = postingRepository.findByIdempotencyKey(req.idempotencyKey());
+        Optional<Posting> existingReversal = idempotencyService.findExisting(req.idempotencyKey());
         if (existingReversal.isPresent()) {
             return PostingResponse.from(existingReversal.get());
         }
@@ -127,7 +105,7 @@ public class PostingService {
         postingRepository.save(original);
         Posting saved = postingRepository.save(reversal);
 
-        warmRedisCache(redisKey, saved.getPostingId());
+        idempotencyService.warm(req.idempotencyKey(), saved.getPostingId());
         log.info("Reversal created: {} for original={}", saved.getPostingId(), postingId);
         return PostingResponse.from(saved);
     }
@@ -141,6 +119,8 @@ public class PostingService {
 
     @Transactional(readOnly = true)
     public Page<PostingResponse> listPostings(UUID accountId, Instant from, Instant to, int page, int size) {
+        // PostingResponse.from touches the LAZY legs collection per row. @BatchSize(50) on
+        // Posting.legs collapses the would-be N+1 into one batched IN-query per page.
         return postingRepository.findByAccountAndDateRange(accountId, from, to, PageRequest.of(page, size))
                 .map(PostingResponse::from);
     }
@@ -201,38 +181,5 @@ public class PostingService {
             posting.getLegs().add(entry);
         }
         return posting;
-    }
-
-    // Resolves idempotency from Redis. Returns null on miss, corrupted value, or stale pointer.
-    private PostingResponse resolveFromRedis(String redisKey) {
-        try {
-            String existingId = redisTemplate.opsForValue().get(redisKey);
-            if (existingId == null) return null;
-            UUID cachedId = UUID.fromString(existingId);
-            Optional<Posting> posting = postingRepository.findById(cachedId);
-            if (posting.isEmpty()) {
-                // Stale pointer — evict and fall through to DB check
-                redisTemplate.delete(redisKey);
-                return null;
-            }
-            return PostingResponse.from(posting.get());
-        } catch (IllegalArgumentException e) {
-            log.warn("Corrupted Redis idempotency value for key {}", redisKey);
-            redisTemplate.delete(redisKey);
-            return null;
-        } catch (Exception e) {
-            // Redis unavailable — fall through to DB
-            log.warn("Redis lookup failed for idempotency key {}: {}", redisKey, e.getMessage());
-            return null;
-        }
-    }
-
-    private void warmRedisCache(String redisKey, UUID postingId) {
-        try {
-            redisTemplate.opsForValue().set(redisKey, postingId.toString(), IDEMPOTENCY_TTL);
-        } catch (Exception e) {
-            // Redis failure must never block a successful posting
-            log.warn("Failed to warm Redis idempotency cache for key {}: {}", redisKey, e.getMessage());
-        }
     }
 }
