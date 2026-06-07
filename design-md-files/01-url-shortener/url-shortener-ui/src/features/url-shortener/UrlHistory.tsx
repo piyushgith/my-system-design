@@ -38,6 +38,8 @@ export function UrlHistory() {
     setToastMessage(ok ? 'Copied!' : 'Copy failed')
   }
 
+  const now = new Date()
+
   return (
     <>
       <div className="flex items-center justify-between mb-4">
@@ -51,7 +53,7 @@ export function UrlHistory() {
 
       <ul className="flex flex-col gap-3" role="list">
         {entries.map((entry) => {
-          const isExpired = entry.expiresAt && new Date(entry.expiresAt) < new Date()
+          const isExpired = entry.expiresAt && new Date(entry.expiresAt) < now
           return (
             <li
               key={`${entry.shortCode}-${entry.savedAt}`}
