@@ -5,20 +5,25 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50:  '#f7ffe5',
+          100: '#edffc7',
+          200: '#d5ff8a',
+          300: '#c8ff57',
+          400: '#b5f532',
+          500: '#9ce020',
+          600: '#7cb800',
+          700: '#5c8a00',
+          800: '#3d5c00',
+          900: '#1f2e00',
+          950: '#0f1700',
         },
       },
+      fontFamily: {
+        display: ['Syne', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+      },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'fade-in': 'fadeIn 0.4s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
       },
       keyframes: {

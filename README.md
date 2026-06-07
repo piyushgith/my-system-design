@@ -58,3 +58,16 @@ my-system-design/
 | DSA pattern | `NN_{snake_name}.md` | `17_binary_search.md` |
 | Interview notes | `NN-{kebab-topic}.md` | `01-core-java-gotchas.md` |
 | Problems | `{tier}-{problem-name}.md` | `200-two-sum.md` (100=easy, 200=med, 300=hard) |
+
+
+## Common Cammands
+
+```
+
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+mvn clean install -q | grep -E "Tests run|BUILD|FAILURE|ERROR"
+
+npx react-doctor@latest --verbose --no-telemetry
+
+```

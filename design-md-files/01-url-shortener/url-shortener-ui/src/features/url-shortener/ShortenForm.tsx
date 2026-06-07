@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,21 +26,46 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+const PLACEHOLDER_URLS = [
+  'https://example.com/very/long/url/here',
+  'https://github.com/user/repo/blob/main/README.md',
+  'https://docs.company.com/api/v2/reference/endpoints',
+  'https://youtube.com/watch?v=dQw4w9WgXcQ',
+]
+
 interface ShortenFormProps {
   onSuccess: (result: CreateUrlResponse) => void
 }
 
-export function ShortenForm({ onSuccess }: ShortenFormProps) {
+export function ShortenForm({ onSuccess }: Readonly<ShortenFormProps>) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const { mutate, isPending } = useCreateUrl()
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDER_URLS.length)
+    }, 3000)
+    return () => clearInterval(id)
+  }, [])
 
   const {
     register,
     handleSubmit,
     setError,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
+
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText()
+      setValue('longUrl', text, { shouldValidate: true })
+    } catch {
+      // clipboard access denied — silently ignore
+    }
+  }
 
   function mapApiError(apiErr: ApiError) {
     const { code, message, field } = apiErr.error
@@ -79,8 +104,20 @@ export function ShortenForm({ onSuccess }: ShortenFormProps) {
           <Input
             label="Long URL"
             type="url"
-            placeholder="https://example.com/very/long/url/here"
+            placeholder={PLACEHOLDER_URLS[placeholderIdx]}
             error={errors.longUrl?.message}
+            suffix={
+              <button
+                type="button"
+                onClick={handlePaste}
+                title="Paste from clipboard"
+                className="p-1 text-gray-600 hover:text-brand-300 transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </button>
+            }
             {...register('longUrl')}
           />
         </div>
@@ -98,9 +135,9 @@ export function ShortenForm({ onSuccess }: ShortenFormProps) {
       <button
         type="button"
         onClick={() => setShowAdvanced((v) => !v)}
-        className="self-start text-xs text-brand-600 hover:text-brand-800 underline-offset-2 hover:underline transition-colors"
+        className="self-start text-xs text-gray-600 hover:text-brand-300 font-mono tracking-wide transition-colors"
       >
-        {showAdvanced ? '− Hide options' : '+ Custom alias & expiry'}
+        {showAdvanced ? '[ − hide options ]' : '[ + alias & expiry ]'}
       </button>
 
       {showAdvanced && (
@@ -114,16 +151,16 @@ export function ShortenForm({ onSuccess }: ShortenFormProps) {
           />
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="ttl" className="text-sm font-medium text-gray-700">
+            <label htmlFor="ttl" className="text-sm font-medium text-gray-400 font-display">
               Expiry
             </label>
             <select
               id="ttl"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="rounded-lg border border-gray-700 hover:border-gray-600 bg-gray-900/80 px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:ring-2 focus:ring-brand-300/40 focus:border-brand-300/40 transition-colors"
               {...register('ttl')}
             >
               {TTL_OPTIONS.map((opt) => (
-                <option key={opt.label} value={opt.value ?? ''}>
+                <option key={opt.label} value={opt.value ?? ''} className="bg-gray-900">
                   {opt.label}
                 </option>
               ))}
@@ -134,8 +171,8 @@ export function ShortenForm({ onSuccess }: ShortenFormProps) {
 
       {/* Root-level API error */}
       {errors.root && (
-        <p className="text-sm text-red-600" role="alert">
-          {errors.root.message}
+        <p className="text-sm text-red-400 font-mono" role="alert">
+          {'✗ '}{errors.root.message}
         </p>
       )}
     </form>
