@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useReducer, useEffect, useRef, useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { listMyPastes, deletePaste } from '../api/pastes'
 import { useAuth } from '../context/AuthContext'
@@ -22,18 +22,51 @@ const ACCESS_COLORS = {
   PRIVATE: 'badge-private',
 }
 
+const initialState = { pastes: [], hasMore: false, loading: true, error: '' }
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, loading: true, error: '' }
+    case 'LOAD_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        pastes: action.append ? [...state.pastes, ...action.items] : action.items,
+        hasMore: action.hasMore,
+      }
+    case 'LOAD_ERROR':
+      return { ...state, loading: false, error: action.error }
+    case 'DELETE_PASTE':
+      return { ...state, pastes: state.pastes.filter((p) => p.shortKey !== action.key) }
+    default:
+      return state
+  }
+}
+
 export default function MyPastesPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const { addToast } = useToast()
 
-  const [pastes, setPastes] = useState([])
-  const [cursor, setCursor] = useState(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { pastes, hasMore, loading, error } = state
+
   const [includeExpired, setIncludeExpired] = useState(false)
   const [deleting, setDeleting] = useState(null)
+  const cursorRef = useRef(null)
+
+  const loadPastes = useCallback(async (cursorParam, append) => {
+    dispatch({ type: 'LOAD_START' })
+    try {
+      const res = await listMyPastes({ cursor: cursorParam, limit: 20, includeExpired })
+      const data = res.data
+      cursorRef.current = data.cursor
+      dispatch({ type: 'LOAD_SUCCESS', items: data.items, hasMore: data.hasMore, append })
+    } catch (err) {
+      dispatch({ type: 'LOAD_ERROR', error: err.response?.data?.detail || 'Failed to load pastes' })
+    }
+  }, [includeExpired])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -41,34 +74,14 @@ export default function MyPastesPage() {
       return
     }
     loadPastes(null, false)
-  }, [isAuthenticated, includeExpired])
-
-  async function loadPastes(cursorParam, append) {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await listMyPastes({
-        cursor: cursorParam,
-        limit: 20,
-        includeExpired,
-      })
-      const data = res.data
-      setPastes((prev) => append ? [...prev, ...data.items] : data.items)
-      setCursor(data.cursor)
-      setHasMore(data.hasMore)
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load pastes')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [isAuthenticated, navigate, loadPastes])
 
   async function handleDelete(key) {
     if (!confirm('Delete this paste permanently?')) return
     setDeleting(key)
     try {
       await deletePaste(key)
-      setPastes((prev) => prev.filter((p) => p.shortKey !== key))
+      dispatch({ type: 'DELETE_PASTE', key })
       addToast('Paste deleted', 'success')
     } catch {
       addToast('Failed to delete', 'error')
@@ -78,7 +91,7 @@ export default function MyPastesPage() {
   }
 
   function loadMore() {
-    loadPastes(cursor, true)
+    loadPastes(cursorRef.current, true)
   }
 
   return (
@@ -92,11 +105,11 @@ export default function MyPastesPage() {
               checked={includeExpired}
               onChange={(e) => setIncludeExpired(e.target.checked)}
               style={{ width: 'auto' }}
-            />
+            />{' '}
             Show expired
           </label>
           <Link to="/">
-            <button className="btn btn-primary btn-sm">+ New Paste</button>
+            <button type="button" className="btn btn-primary btn-sm">+ New Paste</button>
           </Link>
         </div>
       </div>
@@ -108,12 +121,14 @@ export default function MyPastesPage() {
           <div style={{ padding: 40, textAlign: 'center' }}>
             <span className="spinner" />
           </div>
-        ) : pastes.length === 0 ? (
+        ) : null}
+        {!loading && pastes.length === 0 ? (
           <div className="empty-state">
             <h3>No pastes yet</h3>
             <p>Create your first paste to see it here.</p>
           </div>
-        ) : (
+        ) : null}
+        {pastes.length > 0 ? (
           <div className="table-wrapper">
             <table>
               <thead>
@@ -125,7 +140,7 @@ export default function MyPastesPage() {
                   <th>Views</th>
                   <th>Created</th>
                   <th>Expires</th>
-                  <th></th>
+                  <th aria-label="Actions"></th>
                 </tr>
               </thead>
               <tbody>
@@ -136,7 +151,7 @@ export default function MyPastesPage() {
                         {p.title || p.shortKey}
                       </Link>
                       {!p.title && (
-                        <span style={{ color: 'var(--text-subtle)', fontSize: 11, marginLeft: 6 }}>
+                        <span style={{ color: 'var(--text-subtle)', fontSize: 12, marginLeft: 6 }}>
                           {p.shortKey}
                         </span>
                       )}
@@ -157,6 +172,7 @@ export default function MyPastesPage() {
                     </td>
                     <td>
                       <button
+                        type="button"
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDelete(p.shortKey)}
                         disabled={deleting === p.shortKey}
@@ -169,12 +185,12 @@ export default function MyPastesPage() {
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
       </div>
 
       {hasMore && (
         <div className="pagination">
-          <button className="btn btn-secondary" onClick={loadMore} disabled={loading}>
+          <button type="button" className="btn btn-secondary" onClick={loadMore} disabled={loading}>
             {loading ? <><span className="spinner" /> Loading…</> : 'Load more'}
           </button>
         </div>

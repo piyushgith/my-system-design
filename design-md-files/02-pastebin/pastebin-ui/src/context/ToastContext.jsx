@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 
 const ToastContext = createContext(null)
 
@@ -13,8 +13,10 @@ export function ToastProvider({ children }) {
     }, 3000)
   }, [])
 
+  const value = useMemo(() => ({ addToast }), [addToast])
+
   return (
-    <ToastContext.Provider value={{ addToast }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div className="toast-container">
         {toasts.map((t) => (

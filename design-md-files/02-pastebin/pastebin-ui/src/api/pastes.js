@@ -1,5 +1,4 @@
 import client from './client'
-import axios from 'axios'
 
 export const createPaste = (data, idempotencyKey) => {
   const headers = {}
@@ -18,12 +17,3 @@ export const deletePaste = (key) =>
 
 export const listMyPastes = (params) =>
   client.get('/users/me/pastes', { params })
-
-export const getRawContent = async (key, password) => {
-  const headers = {}
-  const token = localStorage.getItem('pb_token')
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  if (password) headers['X-Paste-Password'] = password
-  const res = await axios.get(`/raw/${key}`, { headers })
-  return res.data
-}

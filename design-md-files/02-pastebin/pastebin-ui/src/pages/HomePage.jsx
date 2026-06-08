@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useReducer, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPaste } from '../api/pastes'
 import { getLanguages } from '../api/meta'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { formatCode, FORMATTABLE_LANGS } from '../utils/formatter'
 
 const EXPIRY_OPTIONS = [
   { value: 'ONE_HOUR', label: '1 Hour' },
@@ -19,52 +20,82 @@ const ACCESS_OPTIONS = [
   { value: 'PRIVATE', label: 'Private' },
 ]
 
+const initialState = {
+  content: '',
+  title: '',
+  language: 'plaintext',
+  expiryPolicy: 'ONE_WEEK',
+  accessLevel: 'PUBLIC',
+  customAlias: '',
+  password: '',
+  languages: [],
+  loading: false,
+  error: '',
+}
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_FIELD': return { ...state, [action.field]: action.value }
+    case 'SET_LANGUAGES': return { ...state, languages: action.languages }
+    case 'SUBMIT_START': return { ...state, loading: true, error: '' }
+    case 'SUBMIT_ERROR': return { ...state, loading: false, error: action.error }
+    case 'SUBMIT_DONE': return { ...state, loading: false }
+    default: return state
+  }
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
   const { isAuthenticated } = useAuth()
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { content, title, language, expiryPolicy, accessLevel, customAlias, password, languages, loading, error } = state
+  const [formatting, setFormatting] = useState(false)
 
-  const [content, setContent] = useState('')
-  const [title, setTitle] = useState('')
-  const [language, setLanguage] = useState('plaintext')
-  const [expiryPolicy, setExpiryPolicy] = useState('ONE_WEEK')
-  const [accessLevel, setAccessLevel] = useState('PUBLIC')
-  const [customAlias, setCustomAlias] = useState('')
-  const [password, setPassword] = useState('')
-  const [languages, setLanguages] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  async function handleFormat() {
+    if (!content.trim() || !FORMATTABLE_LANGS.has(language)) return
+    setFormatting(true)
+    const { code, error: fmtError } = await formatCode(content, language)
+    setFormatting(false)
+    if (fmtError) {
+      addToast(fmtError, 'error')
+    } else {
+      dispatch({ type: 'SET_FIELD', field: 'content', value: code })
+      addToast('Code formatted', 'success')
+    }
+  }
 
   useEffect(() => {
     getLanguages()
-      .then((res) => setLanguages(res.data.languages || []))
+      .then((res) => dispatch({ type: 'SET_LANGUAGES', languages: res.data.languages || [] }))
       .catch(() => {
-        // fallback list if backend unavailable
-        setLanguages([
-          { id: 'plaintext', label: 'Plain Text' },
-          { id: 'java', label: 'Java' },
-          { id: 'python', label: 'Python' },
-          { id: 'javascript', label: 'JavaScript' },
-          { id: 'typescript', label: 'TypeScript' },
-          { id: 'yaml', label: 'YAML' },
-          { id: 'json', label: 'JSON' },
-          { id: 'sql', label: 'SQL' },
-          { id: 'bash', label: 'Bash' },
-          { id: 'kotlin', label: 'Kotlin' },
-          { id: 'go', label: 'Go' },
-          { id: 'rust', label: 'Rust' },
-        ])
+        dispatch({
+          type: 'SET_LANGUAGES',
+          languages: [
+            { id: 'plaintext', label: 'Plain Text' },
+            { id: 'java', label: 'Java' },
+            { id: 'python', label: 'Python' },
+            { id: 'javascript', label: 'JavaScript' },
+            { id: 'typescript', label: 'TypeScript' },
+            { id: 'yaml', label: 'YAML' },
+            { id: 'json', label: 'JSON' },
+            { id: 'sql', label: 'SQL' },
+            { id: 'bash', label: 'Bash' },
+            { id: 'kotlin', label: 'Kotlin' },
+            { id: 'go', label: 'Go' },
+            { id: 'rust', label: 'Rust' },
+          ],
+        })
       })
   }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!content.trim()) {
-      setError('Content is required')
+      dispatch({ type: 'SUBMIT_ERROR', error: 'Content is required' })
       return
     }
-    setError('')
-    setLoading(true)
+    dispatch({ type: 'SUBMIT_START' })
     try {
       const payload = {
         title: title || null,
@@ -81,9 +112,9 @@ export default function HomePage() {
       navigate(`/p/${shortKey}`)
     } catch (err) {
       const detail = err.response?.data?.detail || err.response?.data?.message || 'Failed to create paste'
-      setError(detail)
+      dispatch({ type: 'SUBMIT_ERROR', error: detail })
     } finally {
-      setLoading(false)
+      dispatch({ type: 'SUBMIT_DONE' })
     }
   }
 
@@ -103,27 +134,38 @@ export default function HomePage() {
           <div className="card-header">
             <input
               type="text"
+              aria-label="Paste title"
               placeholder="Paste title (optional)"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'title', value: e.target.value })}
               maxLength={255}
               style={{ flex: 1, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 500, padding: '4px 0' }}
             />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'language', value: e.target.value })}
                 style={{ width: 140 }}
               >
                 {languages.map((l) => (
                   <option key={l.id} value={l.id}>{l.label}</option>
                 ))}
               </select>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleFormat}
+                disabled={formatting || !content.trim() || !FORMATTABLE_LANGS.has(language)}
+                title={FORMATTABLE_LANGS.has(language) ? 'Format code' : `No formatter for ${language}`}
+              >
+                {formatting ? <><span className="spinner" /> Formatting…</> : '⌥ Format'}
+              </button>
             </div>
           </div>
           <textarea
+            aria-label="Paste content"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'content', value: e.target.value })}
             placeholder="Paste your code or text here…"
             style={{
               border: 'none',
@@ -138,8 +180,8 @@ export default function HomePage() {
 
         <div className="row">
           <div className="form-group">
-            <label>Expiry</label>
-            <select value={expiryPolicy} onChange={(e) => setExpiryPolicy(e.target.value)}>
+            <label htmlFor="expiry-policy">Expiry</label>
+            <select id="expiry-policy" value={expiryPolicy} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'expiryPolicy', value: e.target.value })}>
               {EXPIRY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -147,8 +189,8 @@ export default function HomePage() {
           </div>
 
           <div className="form-group">
-            <label>Access</label>
-            <select value={accessLevel} onChange={(e) => setAccessLevel(e.target.value)}>
+            <label htmlFor="access-level">Access</label>
+            <select id="access-level" value={accessLevel} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'accessLevel', value: e.target.value })}>
               {ACCESS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -157,24 +199,26 @@ export default function HomePage() {
 
           {isAuthenticated && (
             <div className="form-group">
-              <label>Custom Alias (optional)</label>
+              <label htmlFor="custom-alias">Custom Alias (optional)</label>
               <input
+                id="custom-alias"
                 type="text"
                 placeholder="my-snippet"
                 value={customAlias}
-                onChange={(e) => setCustomAlias(e.target.value)}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'customAlias', value: e.target.value })}
                 maxLength={32}
               />
             </div>
           )}
 
           <div className="form-group">
-            <label>Password (optional)</label>
+            <label htmlFor="paste-password">Password (optional)</label>
             <input
+              id="paste-password"
               type="password"
               placeholder="Protect with password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'password', value: e.target.value })}
               maxLength={72}
             />
           </div>

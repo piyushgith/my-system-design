@@ -1,28 +1,35 @@
-import { useState } from 'react'
+import { useReducer } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register as apiRegister } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
+const initialState = { email: '', displayName: '', password: '', loading: false, error: '' }
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_FIELD': return { ...state, [action.field]: action.value }
+    case 'SUBMIT_START': return { ...state, loading: true, error: '' }
+    case 'SUBMIT_ERROR': return { ...state, loading: false, error: action.error }
+    case 'SUBMIT_DONE': return { ...state, loading: false }
+    default: return state
+  }
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const { addToast } = useToast()
-
-  const [email, setEmail] = useState('')
-  const [displayName, setDisplayName] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { email, displayName, password, loading, error } = state
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
     if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+      dispatch({ type: 'SUBMIT_ERROR', error: 'Password must be at least 8 characters' })
       return
     }
-    setLoading(true)
+    dispatch({ type: 'SUBMIT_START' })
     try {
       const res = await apiRegister(email, password, displayName)
       const { token, userId, email: userEmail, displayName: dn } = res.data
@@ -31,9 +38,9 @@ export default function RegisterPage() {
       navigate('/')
     } catch (err) {
       const detail = err.response?.data?.detail || err.response?.data?.message || 'Registration failed'
-      setError(detail)
+      dispatch({ type: 'SUBMIT_ERROR', error: detail })
     } finally {
-      setLoading(false)
+      dispatch({ type: 'SUBMIT_DONE' })
     }
   }
 
@@ -45,32 +52,34 @@ export default function RegisterPage() {
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Display Name</label>
+              <label htmlFor="reg-display-name">Display Name</label>
               <input
+                id="reg-display-name"
                 type="text"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'displayName', value: e.target.value })}
                 required
-                autoFocus
                 placeholder="piyush"
               />
             </div>
             <div className="form-group">
-              <label>Email</label>
+              <label htmlFor="reg-email">Email</label>
               <input
+                id="reg-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'email', value: e.target.value })}
                 required
                 placeholder="you@example.com"
               />
             </div>
             <div className="form-group">
-              <label>Password</label>
+              <label htmlFor="reg-password">Password</label>
               <input
+                id="reg-password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'password', value: e.target.value })}
                 required
                 minLength={8}
                 placeholder="Min 8 characters"

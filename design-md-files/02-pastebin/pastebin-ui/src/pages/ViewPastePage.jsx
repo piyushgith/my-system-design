@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useReducer, useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getPaste, deletePaste } from '../api/pastes'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import CodeViewer from '../components/CodeViewer'
+import { formatCode, FORMATTABLE_LANGS } from '../utils/formatter'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -16,9 +17,34 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+const ACCESS_BADGE_CLS = { PUBLIC: 'badge-public', UNLISTED: 'badge-unlisted', PRIVATE: 'badge-private' }
+
 function AccessBadge({ level }) {
-  const cls = { PUBLIC: 'badge-public', UNLISTED: 'badge-unlisted', PRIVATE: 'badge-private' }
-  return <span className={`badge ${cls[level] || 'badge-public'}`}>{level}</span>
+  return <span className={`badge ${ACCESS_BADGE_CLS[level] || 'badge-public'}`}>{level}</span>
+}
+
+
+const initialState = { paste: null, loading: true, error: '', passwordRequired: false, formatting: false, formattedContent: null }
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true, error: '' }
+    case 'FETCH_SUCCESS':
+      return { ...state, loading: false, paste: action.paste, passwordRequired: false }
+    case 'FETCH_PASSWORD_REQUIRED':
+      return { ...state, loading: false, passwordRequired: true, error: 'This paste is password-protected.' }
+    case 'FETCH_ERROR':
+      return { ...state, loading: false, error: action.error }
+    case 'FORMAT_START':
+      return { ...state, formatting: true }
+    case 'FORMAT_SUCCESS':
+      return { ...state, formatting: false, formattedContent: action.code }
+    case 'FORMAT_RESET':
+      return { ...state, formatting: false, formattedContent: null }
+    default:
+      return state
+  }
 }
 
 export default function ViewPastePage() {
@@ -27,41 +53,35 @@ export default function ViewPastePage() {
   const { user } = useAuth()
   const { addToast } = useToast()
 
-  const [paste, setPaste] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { paste, loading, error, passwordRequired, formatting, formattedContent } = state
+
   const [passwordInput, setPasswordInput] = useState('')
-  const [passwordRequired, setPasswordRequired] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    fetchPaste()
-  }, [key])
-
-  async function fetchPaste(password) {
-    setLoading(true)
-    setError('')
+  const fetchPaste = useCallback(async (password) => {
+    dispatch({ type: 'FETCH_START' })
     try {
       const res = await getPaste(key, password)
-      setPaste(res.data)
-      setPasswordRequired(false)
+      dispatch({ type: 'FETCH_SUCCESS', paste: res.data })
     } catch (err) {
       const status = err.response?.status
       if (status === 403) {
-        setPasswordRequired(true)
-        setError('This paste is password-protected.')
+        dispatch({ type: 'FETCH_PASSWORD_REQUIRED' })
       } else if (status === 410) {
-        setError('This paste has expired or been deleted.')
+        dispatch({ type: 'FETCH_ERROR', error: 'This paste has expired or been deleted.' })
       } else if (status === 404) {
-        setError('Paste not found.')
+        dispatch({ type: 'FETCH_ERROR', error: 'Paste not found.' })
       } else {
-        setError(err.response?.data?.detail || 'Failed to load paste.')
+        dispatch({ type: 'FETCH_ERROR', error: err.response?.data?.detail || 'Failed to load paste.' })
       }
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [key])
+
+  useEffect(() => {
+    fetchPaste()
+  }, [fetchPaste])
 
   async function handleDelete() {
     if (!confirm('Delete this paste permanently?')) return
@@ -88,6 +108,16 @@ export default function ViewPastePage() {
     }
   }
 
+  async function handleFormat() {
+    const raw = paste?.content
+    if (!raw || !FORMATTABLE_LANGS.has(paste.language?.toLowerCase())) return
+    if (formattedContent !== null) { dispatch({ type: 'FORMAT_RESET' }); return }
+    dispatch({ type: 'FORMAT_START' })
+    const { code, error: fmtError } = await formatCode(raw, paste.language)
+    if (fmtError) { dispatch({ type: 'FORMAT_RESET' }); addToast(fmtError, 'error') }
+    else dispatch({ type: 'FORMAT_SUCCESS', code })
+  }
+
   function handlePasswordSubmit(e) {
     e.preventDefault()
     fetchPaste(passwordInput)
@@ -108,7 +138,7 @@ export default function ViewPastePage() {
       <div className="page">
         <div className="alert alert-error">{error}</div>
         <Link to="/">
-          <button className="btn btn-secondary">Back to Home</button>
+          <button type="button" className="btn btn-secondary">Back to Home</button>
         </Link>
       </div>
     )
@@ -122,12 +152,12 @@ export default function ViewPastePage() {
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handlePasswordSubmit}>
             <div className="form-group">
-              <label>Password</label>
+              <label htmlFor="paste-password">Password</label>
               <input
+                id="paste-password"
                 type="password"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                autoFocus
                 placeholder="Enter paste password"
               />
             </div>
@@ -165,23 +195,40 @@ export default function ViewPastePage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleCopy}>
+            {FORMATTABLE_LANGS.has(paste.language?.toLowerCase()) && (() => {
+              let fmtLabel
+              if (formatting) fmtLabel = 'Fmt…'
+              else if (formattedContent === null) fmtLabel = '⌥ Format'
+              else fmtLabel = '↩ Raw'
+              return (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleFormat}
+                  disabled={formatting}
+                  title={formattedContent === null ? 'Format code' : 'Show original'}
+                >
+                  {formatting && <span className="spinner" />} {fmtLabel}
+                </button>
+              )
+            })()}
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleCopy}>
               {copied ? '✓ Copied' : 'Copy'}
             </button>
             <a href={`/raw/${key}`} target="_blank" rel="noreferrer">
-              <button className="btn btn-secondary btn-sm">Raw</button>
+              <button type="button" className="btn btn-secondary btn-sm">Raw</button>
             </a>
             <Link to="/" state={{ fork: paste }}>
-              <button className="btn btn-secondary btn-sm">Fork</button>
+              <button type="button" className="btn btn-secondary btn-sm">Fork</button>
             </Link>
             {isOwner && (
-              <button className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
+              <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
             )}
           </div>
         </div>
-        <CodeViewer content={paste.content || ''} language={paste.language} />
+        <CodeViewer content={formattedContent ?? paste.content ?? ''} language={paste.language} />
       </div>
     </div>
   )
