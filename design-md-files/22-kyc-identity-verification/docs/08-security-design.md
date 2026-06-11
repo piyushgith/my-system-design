@@ -192,6 +192,39 @@ Audit logs → append-only Kafka topic → S3 sink → 10-year retention.
 
 ---
 
+## Data Processing Agreements and Privacy Impact Assessment
+
+The pipeline ships raw identity documents and biometric data to third-party vendors — this is outsourced personal data processing under the DPDP Act and must be governed contractually and procedurally, not just technically.
+
+### Data Processing Agreements (DPA) — required per vendor
+
+Every vendor contract (OCR, liveness, watchlist) must include:
+
+- **Purpose limitation**: vendor may process submitted data only to perform the contracted check — no model training on our customers' documents without explicit separate consent
+- **Retention bound on the vendor side**: vendor deletes raw images and biometric artifacts within a contractual window (target: 30 days); our own purge of `pii_expires_at` is meaningless if the vendor keeps copies
+- **Sub-processor disclosure and approval**: vendors using cloud OCR sub-processors must disclose them; data residency clauses keep processing in permitted jurisdictions
+- **Breach notification SLA**: vendor must notify within 24–72 hours; feeds our own DPDP breach-notification obligations
+- **Audit rights**: right to security questionnaires/SOC 2 reports annually; watchlist vendors additionally attest list update cadence
+
+The vendor abstraction layer (01-high-level-architecture) is the enforcement point: a vendor without a signed DPA cannot be registered as a routing target.
+
+### Privacy Impact Assessment (DPIA)
+
+Run before launch and re-run on every material change (new vendor, new data category, new jurisdiction):
+
+| DPIA element | This system |
+|---|---|
+| Data categories | Identity documents, facial biometrics, PAN/Aadhaar identifiers, watchlist results |
+| Lawful basis | KYC is a legal obligation (RBI Master Direction) — consent is *not* the basis for the check itself, only for optional add-ons |
+| High-risk processing | Biometric liveness — requires explicit DPIA treatment and vendor-side deletion guarantees |
+| Data minimization | Vendors receive only the fields each check needs (liveness vendor gets selfie, not PAN) |
+| Cross-border transfer | Liveness/watchlist vendors processing outside India need contractual safeguards per DPDP rules |
+| Subject rights | Erasure honored post-retention via the scheduled purge flow (06-event-flow Flow 5); access requests served from the encrypted application record |
+
+Ownership: compliance team owns the DPIA document; engineering owns the technical controls it references. Review annually.
+
+---
+
 ## Interview Discussion Points
 
 - **How do you ensure a compromised engineer cannot read customer PII?** Envelope encryption: even with DB access, an engineer sees only encrypted bytes. They would need AWS KMS access to decrypt — KMS access is controlled by IAM policies with MFA requirement. All KMS calls are logged in CloudTrail. Any unauthorized decrypt attempt triggers a security alert

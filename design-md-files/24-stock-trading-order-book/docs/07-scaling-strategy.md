@@ -163,6 +163,25 @@ Scaling to 100,000 connections:
 - Switch to distributed WebSocket framework (Vert.x, Netty-based) — each pod handles 10,000 connections
 - Redis Pub/Sub fan-out becomes bottleneck: consider Kafka Consumer per WebSocket pod instead
 
+### Slow Consumers and Conflation
+
+One slow client must never backpressure the fan-out path — a phone on 3G cannot be allowed to slow market data for everyone else. Each WebSocket connection gets a **bounded per-connection send queue**; the fan-out thread enqueues and moves on, never blocking on a socket write.
+
+What happens when a connection's queue fills depends on the stream, because streams differ in whether intermediate updates have value:
+
+| Stream | Conflatable? | Overflow policy |
+|--------|--------------|-----------------|
+| Level 1 quotes | Yes — only the latest BBO per symbol matters | Keep-latest per symbol: a new tick replaces the queued tick for that symbol. Slow client sees fewer, fresher updates — never stale ones |
+| Level 2 depth | Yes — as snapshot | Replace queued incremental updates with one fresh book snapshot on drain |
+| Trade ticker | No (every trade is a fact) | Drop oldest with an explicit `gap` marker carrying the missed sequence range; client can fetch missed trades via REST or replay from `trade-executed` (7-day Kafka retention) |
+| Execution reports | **Never dropped** | Not served from the conflating fan-out at all: per-participant durable consumption from `execution-reports` (keyed by participantId), resumable by offset after reconnect |
+
+**Disconnect policy:** a connection whose queue stays above high-water for N seconds (default 10s) despite conflation is closed with a `SLOW_CONSUMER` close code. The client reconnects, receives a fresh snapshot, and resumes incremental updates — snapshot-plus-deltas is the recovery primitive, same as matching engine recovery.
+
+**Gap detection:** every published market-data message carries a per-symbol sequence number. Clients detect gaps (`seq > last + 1`), and the protocol's answer to a gap is always "request snapshot, resume deltas" — clients must not attempt to reconstruct missed deltas.
+
+**Fairness note (exchange context):** conflation creates information asymmetry between fast and slow consumers. For a retail broker this is acceptable and standard. For a regulated exchange feed, the conflated feed must be the same product for everyone at the same tier — per-client adaptive conflation on the public feed is a regulatory problem, not an optimization.
+
 ---
 
 ## Caching Strategy

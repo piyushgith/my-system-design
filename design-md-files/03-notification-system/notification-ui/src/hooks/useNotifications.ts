@@ -21,6 +21,7 @@ export function useNotification(notificationId: string | undefined) {
 }
 
 export function useSubmitNotification() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({
       body,
@@ -29,6 +30,9 @@ export function useSubmitNotification() {
       body: SubmitNotificationRequest
       idempotencyKey: string
     }) => submitNotification(body, idempotencyKey),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['notification', data.notificationId] })
+    },
   })
 }
 

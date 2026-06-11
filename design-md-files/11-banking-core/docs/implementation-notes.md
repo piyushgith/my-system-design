@@ -2,7 +2,7 @@
 
 ## Money storage
 
-Design doc [`05-database-design.md`](05-database-design.md) uses `NUMERIC(20,4)`. The MVP implementation uses **`BIGINT` paise** per [`15-implementation-roadmap.md`](15-implementation-roadmap.md) non-negotiables. API responses expose rupees as `BigDecimal`; persistence is always integer paise.
+Design doc [`05-database-design.md`](05-database-design.md) and the MVP implementation both use **`BIGINT` paise** per [`15-implementation-roadmap.md`](15-implementation-roadmap.md) non-negotiables (05 originally said `NUMERIC(20,4)`; aligned to the implementation). API responses expose rupees as `BigDecimal`; persistence is always integer paise.
 
 ## Databases
 

@@ -32,7 +32,7 @@ Define the functional and non-functional requirements, constraints, assumptions,
 - Real-time feature computation: compute behavioral features in < 50ms from streaming transaction data (Kafka Streams)
 - Adverse action notices: auto-generate the reason codes in regulatory-compliant format (ECOA/FCRA) for declined applications
 - Score drift monitoring: detect when score distribution shifts over time — model degradation signal
-- Model fairness audit: detect and quantify bias in scoring across demographic groups (ECOA protected attributes)
+- Continuous fairness monitoring: automated recurring bias measurement across demographic groups, beyond the pre-launch audit (the pre-launch fairness audit itself is a V1 launch gate, not a V2+ feature — see Non-Functional Requirements)
 - Explainability API: SHAP values for each feature's contribution to the score — required for regulatory review
 
 ---
@@ -49,6 +49,7 @@ Define the functional and non-functional requirements, constraints, assumptions,
 | Audit | Every score computation stored with all inputs — required by ECOA/RBI |
 | Data freshness | Bureau data refreshed every 30 days; behavioral features updated daily |
 | Explainability | Reason codes (top 4 factors) returned with every score |
+| Fairness (launch gate) | Pre-launch disparate impact audit across protected groups (ECOA attributes) for every model before it serves production lending decisions; part of the model validation report required by the risk team |
 
 ---
 

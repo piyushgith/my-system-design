@@ -40,7 +40,7 @@ Define functional and non-functional requirements for a matching engine that acc
 | Throughput | 100,000 orders/sec per symbol, 1M+ across exchange | Peak market open |
 | Order book depth | 10,000+ orders per side per symbol | Institutional liquidity |
 | Availability | 99.99% during trading hours | Revenue-critical |
-| Durability | Zero trade loss — every execution persisted before ack | Regulatory |
+| Durability | Zero trade loss — every inbound order durably journaled (acks=all) before the client receives ORDER_ACCEPTED; executions are reproducible from the input journal via deterministic replay | Regulatory |
 | Audit trail | Every order event immutably logged with nanosecond timestamp | FINRA, SEC |
 | Market data fan-out | < 5ms from match to downstream consumers | Fairness regulation |
 | Recovery | Resume matching from checkpoint after crash within 30s | Trading halt SLA |

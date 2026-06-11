@@ -30,8 +30,9 @@ Analyze failure modes for each component, define detection strategies, recovery 
 1. Kubernetes starts replacement pod immediately (< 30 seconds via readiness probe)
 2. Replacement pod:
    a. Loads latest `order_book_snapshots` from PostgreSQL (per symbol)
-   b. Replays `order-events` from Kafka from `snapshot.sequenceNumber + 1`
-   c. Rebuilds in-memory order book for each symbol
+   b. Replays `order-requests` (the durable input journal) from Kafka from `snapshot.sequenceNumber + 1` — matching is deterministic, so replay regenerates the identical book state and trades, including any executions matched but not yet published before the crash
+   c. Re-publishes regenerated post-match events idempotently (`enable.idempotence` + sequence numbers let downstream consumers deduplicate)
+   d. Rebuilds in-memory order book for each symbol
 3. Symbol router marks pod as available after health check passes
 4. Trading resumes (within 30-second circuit breaker halt window)
 

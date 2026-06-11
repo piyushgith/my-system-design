@@ -67,6 +67,7 @@ If ring buffer is full (matching engine lagging):
 
 | Topic | Partitions | Replication | Retention | Key |
 |-------|-----------|-------------|-----------|-----|
+| `order-requests` | 50 | 3 | 7 days | symbol |
 | `order-events` | 50 | 3 | 7 days | symbol |
 | `trade-executed` | 50 | 3 | 7 days | symbol |
 | `order-book-updates` | 50 | 2 | 1 hour | symbol |
@@ -84,6 +85,7 @@ If ring buffer is full (matching engine lagging):
 
 | Topic | Key | Rationale |
 |-------|-----|-----------|
+| `order-requests` | symbol | Input journal — the durability point; per-symbol ordering defines deterministic replay order |
 | `order-events` | symbol | Symbol ordering required — consumers process per-symbol |
 | `trade-executed` | symbol | Symbol ordering for market data and settlement |
 | `execution-reports` | participantId | Participant ordering — all reports for one participant arrive in order |
@@ -107,6 +109,18 @@ delivery.timeout.ms=30000   # 30s total delivery timeout
 ```
 
 `acks=all` adds 5-10ms latency per batch. This is acceptable because Kafka publish is asynchronous — the matching engine does not wait for Kafka acknowledgment before processing the next ring buffer event.
+
+### Where Is the Durability Point?
+
+The Disruptor is in-memory and post-match Kafka publish is asynchronous, so neither is the durability guarantee. The durability point is the **`order-requests` input journal**:
+
+1. Order Gateway validates the order, assigns the per-symbol sequence number, and publishes it to `order-requests` with `acks=all`.
+2. Only after the Kafka acknowledgment does the gateway return ORDER_ACCEPTED to the client and hand the order to the matching engine's ring buffer.
+3. Matching is single-threaded and deterministic per symbol: the same input sequence always produces the same book state and the same trades.
+
+Consequence: post-match streams (`order-events`, `trade-executed`, `execution-reports`) are **derived data**. If the matching pod crashes after matching but before its async publish or journal flush, no execution is lost — recovery loads the latest book snapshot and replays `order-requests` from `snapshot.sequenceNumber + 1`, regenerating the identical trades. The "zero trade loss" NFR is satisfied by durable inputs + deterministic replay, not by synchronous persistence of every output.
+
+Cost: the `acks=all` input journal write (~5-10ms batched) sits on the order-acceptance path, not the matching path — matching latency is unaffected, but order-acceptance latency includes the journal write. This is the standard exchange tradeoff (sequenced input log first; LMAX and modern exchanges work this way).
 
 ### Consumer Groups
 

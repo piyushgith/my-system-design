@@ -38,7 +38,7 @@ Interviewers use this problem to test whether you can hold multiple concerns sim
 2. **"How do you prevent a tenant from accidentally reading another tenant's data in the RLS model?"**
 
    - PostgreSQL RLS policies enforce `tenant_id = current_setting('app.current_tenant')` at the DB layer
-   - The application sets this session variable before every query
+   - The application sets this variable via `SET LOCAL` inside every transaction — a session-level `SET` would leak across tenants under PgBouncer transaction pooling
    - Integration tests verify isolation: a test creates records as Tenant A, then queries as Tenant B and asserts zero results
    - Read replicas inherit RLS policies — this is often missed in interviews
 

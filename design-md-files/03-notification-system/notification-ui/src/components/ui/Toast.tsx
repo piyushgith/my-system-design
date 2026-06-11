@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 
 interface Toast {
   id: string
@@ -27,8 +27,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
+  const contextValue = useMemo(
+    () => ({ toasts, addToast, removeToast }),
+    [toasts, addToast, removeToast],
+  )
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
@@ -41,6 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           >
             <span className="flex-1">{t.message}</span>
             <button
+              type="button"
               onClick={() => removeToast(t.id)}
               className="ml-2 text-white/80 hover:text-white"
             >

@@ -143,7 +143,7 @@ Every repository method that queries tenant-scoped data receives `tenantId` and 
 
 PostgreSQL RLS policies provide a safety net independent of the application. Even if application code forgets to add `tenant_id` filter, the DB rejects the cross-tenant read.
 
-The database session variable `app.current_tenant_id` is set by the connection pool management layer before any query executes.
+The variable `app.current_tenant_id` is set via `SET LOCAL` inside each transaction (transaction-scoped, not session-scoped) before any query executes. With PgBouncer in transaction pooling mode, a session-level `SET` would survive the transaction and leak to the next tenant reusing the pooled connection — `SET LOCAL` resets at COMMIT/ROLLBACK and closes that leak. The RLS policy must also treat a missing variable as deny (zero rows), not as "no filter".
 
 ### Control 3: Cross-Tenant Query Detection
 

@@ -105,6 +105,7 @@ Define a phased implementation plan from MVP to production-scale system. Each ph
 - Adverse action notice: `GET /api/v1/scores/{id}/adverse-action-notice` endpoint
 - Model registry API: full CRUD + promotion workflow with approval_token
 - Feature inspection admin API: `GET /api/v1/features/{user_id}`
+- Pre-launch model fairness audit: disparate impact ratio across protected groups (gender, age band, geography) measured on holdout data for every model version; result attached to the model validation report — promotion to champion is blocked without a passing audit
 - Security hardening: mTLS (Istio), RBAC scopes, audit logging to `credit.audit.log` topic
 - PostgreSQL partitioning: monthly partition management (pg_partman), first archival script
 - HPA configuration: auto-scale based on CPU
@@ -126,6 +127,7 @@ Champion-challenger across all products
 - Score change detection: loan service receives `credit.score.significant_change` within 60s
 - P99 latency < 200ms at 50 RPS (full target load, load tested)
 - Regulatory compliance test suite: all tests green
+- Fairness audit passed and signed off by risk team for every model serving production traffic (launch gate — V2 only automates the recurring monitoring)
 
 ### Risks
 

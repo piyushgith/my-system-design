@@ -165,6 +165,19 @@ Drift alert: if bureau.cibil_score P50 changes by > 30 points week-over-week
 
 **Implementation:** Kafka Streams sampling job reads 1% of score requests, extracts feature vectors, computes rolling statistics, publishes to Prometheus via custom exporter. Data Science team reviews weekly feature drift report.
 
+### Training-Serving Skew Monitoring
+
+Feature drift compares serving traffic against itself over time. Skew is a different failure: the **online** feature value (Redis feature store, computed by the streaming pipeline) differs from what the **offline** training pipeline would compute for the same user at the same moment. The model then runs on inputs it was never trained on — accuracy degrades with no drift alarm, because both distributions can look individually healthy.
+
+**Common causes:** separate online/offline computation code paths, different null/default handling, time-travel leakage in training features (offline job sees data that hadn't arrived at serving time), unit mismatches after a pipeline change.
+
+**Detection:**
+- The feature snapshot persisted with every score (reproducibility requirement) is the free ground truth. Weekly job: sample 10K scored users, recompute their features through the **offline/training** pipeline as-of the score timestamp, diff against the stored serving snapshot
+- Metric: `feature_skew_ratio{feature_name}` = share of sampled rows where |online − offline| exceeds the feature's tolerance; alert at > 1% for any model input feature
+- Run the same diff as a release gate whenever either pipeline changes feature logic
+
+**Prevention:** single feature-definition source (`feature_definitions` table already in the schema) consumed by both pipelines; any feature whose online and offline implementations diverge structurally must carry an explicit waiver in the model validation report (see 13-deployment, Model Governance).
+
 ### Model Performance Monitoring (PSI — Population Stability Index)
 
 **Problem:** champion model trained on historical data. Real population shifts over time → model calibration degrades.

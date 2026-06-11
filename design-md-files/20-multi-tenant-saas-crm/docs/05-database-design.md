@@ -35,9 +35,11 @@ graph TB
 Every table has a `tenant_id UUID NOT NULL` column. PostgreSQL RLS policies enforce that each database session can only see rows for its tenant.
 
 **Implementation Pattern**:
-1. Application sets `SET app.current_tenant_id = 'uuid'` as a session parameter before any query
+1. Application sets `SET LOCAL app.current_tenant_id = 'uuid'` inside each transaction, before any query
 2. RLS policy references `current_setting('app.current_tenant_id')::uuid`
 3. Policy is enabled on all tenant-scoped tables: `ALTER TABLE contacts ENABLE ROW LEVEL SECURITY`
+
+**Critical: `SET LOCAL`, not `SET` — because of PgBouncer transaction pooling.** PgBouncer in transaction pooling mode hands the same PostgreSQL connection to a different client after every transaction. A session-level `SET` survives the transaction and leaks to the next tenant that gets that connection — a direct cross-tenant data exposure. `SET LOCAL` scopes the parameter to the current transaction only and resets automatically at COMMIT/ROLLBACK. Enforce this in one place (a transaction interceptor/aspect that opens the transaction, issues `SET LOCAL`, then runs the unit of work) so no query can run outside a tenant-scoped transaction. Additionally, the RLS policy should treat a missing parameter as deny: `current_setting('app.current_tenant_id', true)` returning NULL must match zero rows, never all rows.
 
 **RLS Policy Example (conceptual)**:
 ```

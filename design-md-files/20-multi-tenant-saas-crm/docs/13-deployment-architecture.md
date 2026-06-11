@@ -223,7 +223,7 @@ sequenceDiagram
 ## Local Development Setup
 
 Local dev uses Docker Compose with:
-- PostgreSQL (single instance, shared schema with tenant switching via `SET app.current_tenant`)
+- PostgreSQL (single instance, shared schema with tenant switching via transaction-scoped `SET LOCAL app.current_tenant`)
 - Redis single node
 - Kafka single broker + Zookeeper
 - Elasticsearch single node

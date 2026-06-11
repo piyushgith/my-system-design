@@ -50,6 +50,21 @@ Define requirements for an end-to-end lending platform covering the full loan li
 | F21 | Collections workflow for overdue accounts: reminder → escalation → field agent |
 | F22 | Legal escalation workflow for NPA accounts |
 
+### Regulatory Reporting
+
+A lender's reporting obligations are functional requirements, not an afterthought — several drive schema and event design (DPD tracking, provisioning buckets, restructuring flags must exist as queryable data, not derived ad hoc at report time).
+
+| # | Requirement |
+|---|-------------|
+| F23 | Credit Information Company (CIC) reporting: submit borrower repayment data to all four CICs (CIBIL, Experian, Equifax, CRIF) in the standard data format, monthly (moving to more frequent cycles per RBI direction) |
+| F24 | NPA and provisioning reporting: asset classification (Standard / SMA-0/1/2 / Sub-standard / Doubtful / Loss) computed from DPD per RBI IRACP norms, with provisioning amounts posted to the ledger |
+| F25 | Large-exposure reporting (CRILC) for aggregate borrower exposure above the RBI threshold |
+| F26 | Digital lending compliance artifacts: Key Fact Statement (KFS) with APR for every offer; loan disbursal and repayment only between borrower and regulated-entity accounts (RBI Digital Lending Guidelines) |
+| F27 | Restructured-loan flagging and reporting (restructuring events are reportable, not just internal state) |
+| F28 | Regulatory return generation: periodic returns to RBI as applicable to the entity's license class (NBFC returns via CIMS) |
+
+**Design consequences:** every report above is a *projection of events the system already emits* (`LoanDisbursed`, `EMIPaymentReceived`, `LoanNPAClassified`, `LoanRestructured` — see 02-domain-modeling). The reporting module is a Kafka consumer building report-shaped read models, plus a generation/submission job with maker-checker on outbound files. DPD (days-past-due) must be computed and stored daily per loan — back-computing DPD from raw payment history at report time is error-prone under partial payments and restructuring. Report submissions are themselves auditable artifacts: store every generated file, submission timestamp, and CIC/RBI acknowledgment for the 10-year retention window.
+
 ---
 
 ## Non-Functional Requirements

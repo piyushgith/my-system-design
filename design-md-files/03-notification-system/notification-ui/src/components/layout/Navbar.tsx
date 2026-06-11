@@ -26,6 +26,7 @@ export function Navbar() {
               </span>
             </span>
             <button
+              type="button"
               onClick={handleLogout}
               className="text-sm text-gray-500 hover:text-gray-800"
             >

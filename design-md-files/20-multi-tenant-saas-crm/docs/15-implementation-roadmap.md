@@ -92,7 +92,7 @@ Transform the single-tenant system into a multi-tenant platform. Add tenant onbo
 ### Features
 
 - Tenant registration and onboarding flow (self-service signup)
-- Row-Level Security via PostgreSQL policies + `app.current_tenant` session variable
+- Row-Level Security via PostgreSQL policies + transaction-scoped `SET LOCAL app.current_tenant` variable
 - Tenant isolation verified via automated integration tests
 - Basic RBAC: platform roles (Admin, Manager, Sales Rep, Viewer)
 - Per-tenant user management: invite users, assign roles, deactivate accounts

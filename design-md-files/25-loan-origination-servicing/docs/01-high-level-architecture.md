@@ -248,3 +248,19 @@ Origination ends at loan activation. Servicing begins at loan activation. These 
 - Scaling requirements (spike at application campaigns vs steady EMI processing)
 
 Separate modules now = easy service extraction later.
+
+---
+
+## Relationship to Sibling Core Systems
+
+Three capabilities this system consumes are themselves fully designed elsewhere in this portfolio. The loan platform must **integrate** with them, not re-design them — duplicating any of these internally is the main portfolio-level architecture risk.
+
+| Capability | This system's role | Designed in | Integration contract |
+|---|---|---|---|
+| Double-entry ledger | Consumer. Disbursement, EMI postings, fees, provisioning, write-offs are multi-leg postings | [`21-double-entry-ledger`](../../21-double-entry-ledger/docs/01-high-level-architecture.md) | Posting API with caller-namespaced idempotency keys (`loan:<saga_id>:<step>`); the "Financial / Ledger" bounded context in 03-ddd-boundaries is an ACL over this service, not a second ledger |
+| KYC / identity verification | Consumer. "KYC assumed pre-completed" in MVP assumptions resolves to this service | [`22-kyc-identity-verification`](../../22-kyc-identity-verification/docs/01-high-level-architecture.md) | Trigger KYC application, consume `kyc.outcome.decided` Kafka event; re-verification triggers on restructuring or borrower data change |
+| Credit scoring | Consumer. The credit-policy rules step (F3) calls the scoring engine rather than embedding a model | [`23-credit-scoring-engine`](../../23-credit-scoring-engine/docs/01-high-level-architecture.md) | Synchronous score API with reason codes; **must honor the `source=FALLBACK_CACHE` contract** — stale fallback scores above age threshold route the application to manual underwriting, never auto-decision; adverse action notices reuse the scoring engine's reason codes |
+
+**Boundary rule:** this system owns the *loan lifecycle state machine* (application, underwriting workflow, servicing, collections). It does not own money truth (ledger), identity truth (KYC), or risk truth (scoring) — it orchestrates them. Events flowing back (`LoanDisbursed`, `EMIPaymentReceived`, `LoanNPAClassified`) feed the scoring engine's feature pipeline, closing the loop: repayment behavior becomes a scoring feature for the next application.
+
+Deployment note: in a single-company context these may start as modules of one platform rather than separate services — the contracts above still apply at module boundaries, which is what keeps later extraction cheap.

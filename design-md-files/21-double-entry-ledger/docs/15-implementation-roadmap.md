@@ -193,6 +193,40 @@ Define the phased implementation plan from MVP through production-grade scale. E
 
 ---
 
+## Adoption: Migrating an Existing Platform onto the Ledger
+
+The ledger is a core primitive — most adopters already have money movement recorded somewhere (a `transactions` table, a payment provider's reports, spreadsheets). The roadmap above builds the service; this section defines how an existing platform cuts over to it without losing or corrupting financial history. Skipping this is the most common real-world failure mode for a new ledger.
+
+### Migration Phases
+
+1. **Backfill (historical load)**
+   - Export historical money movements from the legacy store in chronological order
+   - Transform each into a balanced multi-leg posting; unbalanced legacy records get an explicit `MIGRATION_ADJUSTMENT` leg against a dedicated migration suspense account — never silently "fix" history
+   - Load via the standard posting API with deterministic idempotency keys (`legacy:<source>:<legacy_txn_id>`) so the backfill is restartable and re-runnable
+   - Opening balances: one opening posting per account against `OPENING_BALANCE` equity account, dated at the migration cut date — do not fabricate per-transaction history older than the export horizon
+2. **Parallel run (shadow mode, 2–4 weeks minimum)**
+   - Legacy system remains the source of truth; every new money movement is dual-written to the ledger (async, via the same events the outbox already publishes)
+   - Daily reconciliation job compares per-account balances: legacy vs ledger. Mismatches block cutover — each one is a bug in transformation logic or a legacy data quality issue, and both must be explained, not waived
+3. **Cutover**
+   - Freeze window: stop writes, drain dual-write queue, run final reconciliation, flip reads/writes to the ledger
+   - Legacy store becomes read-only archive; the migration suspense account must be zero or formally signed off by finance
+4. **Rollback plan**
+   - Until cutover + one reconciliation cycle, the dual-write path can be reversed (ledger → shadow, legacy → primary). After that, rollback is a new migration — state this explicitly to stakeholders before cutover
+
+### Design Consequences
+
+- Idempotency keys must accept a caller-supplied namespace (already in the API design) — the migration depends on it
+- Postings accept an explicit `posted_at` in the past **only** via a privileged migration scope (normal API rejects backdating; soft-close periods from V2 must exempt the migration window)
+- Reconciliation API (V1 feature) is a migration prerequisite, not an optional nicety — sequence it before any adopter onboards
+
+### Migration Risks
+
+- Legacy data that never balanced (most of it won't) — suspense account discipline and finance sign-off, not silent correction
+- Backfill volume: 100M legacy rows at 5,000 postings/sec ≈ 6 hours; partition-friendly because backfill is append-only and per-account ordered
+- Dual-write divergence during parallel run — treat any unreconciled day as a cutover blocker
+
+---
+
 ## What Should NOT Be Built Prematurely
 
 | Feature | Why to Defer |

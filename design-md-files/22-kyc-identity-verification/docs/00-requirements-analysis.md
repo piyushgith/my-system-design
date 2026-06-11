@@ -118,6 +118,28 @@ Document images stored in S3 with lifecycle rules:
 - After closure + 2 years: S3 Glacier (regulatory archive)
 - After retention period: automated deletion via S3 lifecycle policy
 
+### Vendor Cost Model
+
+Vendor per-check pricing dominates KYC unit economics — infrastructure is a rounding error next to it. Cost per verification shapes architectural decisions made elsewhere in this suite (bureau-style result caching, tier routing, retry policy). Indicative pricing (validate against actual contracts):
+
+| Check | Vendor | Indicative cost per call | Calls/day (avg) | Cost/day |
+|---|---|---|---|---|
+| Aadhaar OCR/fetch | DigiLocker | ~₹0 (government rail) | 7,000 | ~₹0 |
+| Document OCR (fallback) | Onfido/Jumio | ₹30–60 | 3,000 | ₹90K–180K |
+| Liveness | Onfido | ₹40–80 | 10,000 | ₹400K–800K |
+| Watchlist screening | LexisNexis/Dow Jones | ₹15–40 | 10,000 | ₹150K–400K |
+
+**Consequences for the design:**
+
+- **Per-completed-KYC cost: roughly ₹65–130** on the automated path. At 10K/day this is ₹2–4 crore/year — the single largest line item in the system. A manual reviewer at ₹50/case is *cheaper* than some vendor combinations; the 10% manual-review rate is a cost lever, not only a quality lever.
+- **Never re-call a vendor for data you already have:** vendor results are persisted per application (already in the schema); retries must reuse stored results when the step itself succeeded and only the pipeline failed. An idempotent retry that re-bills a liveness check is a money bug, not just a latency bug.
+- **Tier routing is a cost feature:** Basic tier (Aadhaar OTP via DigiLocker, near-zero marginal cost) vs Full tier (~₹100+) — risk-based tier selection (V2) pays for itself in vendor savings, independent of UX benefits.
+- **Fallback vendor pricing differs:** the vendor abstraction layer must expose per-vendor cost so routing can prefer the cheaper healthy vendor, not just the primary.
+- **Watchlist re-screening (V2 continuous monitoring)** multiplies screening volume by the full customer base, not daily applications — budget it before committing to the feature, and negotiate batch re-screening rates separately from real-time rates.
+- **Campaign bursts** (50K/day peak) multiply daily vendor spend 5×: vendor contracts need burst clauses, and finance needs the alert before the campaign, not the invoice after.
+
+Track `kyc_vendor_cost_total{vendor, check_type}` as a first-class metric alongside latency and error rate (see 12-observability).
+
 ---
 
 ## Read/Write Patterns

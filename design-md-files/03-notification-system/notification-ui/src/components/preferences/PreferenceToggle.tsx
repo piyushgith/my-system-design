@@ -32,6 +32,8 @@ export function PreferenceToggle({ pref, onChange, disabled = false }: Props) {
         type="button"
         disabled={disabled || isLocked}
         onClick={() => onChange(!pref.optedIn)}
+        aria-label={`${pref.optedIn ? 'Disable' : 'Enable'} ${CHANNEL_LABELS[pref.channel]} ${CATEGORY_LABELS[pref.category]} notifications`}
+        aria-pressed={pref.optedIn}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
           disabled:cursor-not-allowed disabled:opacity-50

@@ -93,9 +93,9 @@ accounts.accounts (
     product_code    VARCHAR(30) NOT NULL,
     status          VARCHAR(20) NOT NULL,        -- PENDING, ACTIVE, FROZEN, DORMANT, CLOSED
     currency        CHAR(3) NOT NULL DEFAULT 'INR',
-    current_balance NUMERIC(20,4) NOT NULL DEFAULT 0,
-    available_balance NUMERIC(20,4) NOT NULL DEFAULT 0,
-    overdraft_limit NUMERIC(20,4) NOT NULL DEFAULT 0,
+    current_balance BIGINT NOT NULL DEFAULT 0,   -- paise (integer minor units)
+    available_balance BIGINT NOT NULL DEFAULT 0, -- paise (integer minor units)
+    overdraft_limit BIGINT NOT NULL DEFAULT 0,   -- paise (integer minor units)
     open_date       DATE NOT NULL,
     closure_date    DATE,
     last_txn_date   DATE,
@@ -109,7 +109,7 @@ accounts.accounts (
 accounts.liens (
     lien_id         UUID PRIMARY KEY,
     account_id      VARCHAR(25) NOT NULL,
-    amount          NUMERIC(20,4) NOT NULL,
+    amount          BIGINT NOT NULL,             -- paise (integer minor units)
     reason          VARCHAR(200) NOT NULL,
     status          VARCHAR(20) NOT NULL,        -- ACTIVE, RELEASED, EXPIRED
     lien_type       VARCHAR(30),                 -- PAYMENT_HOLD, LEGAL_HOLD, CHEQUE_HOLD
@@ -138,7 +138,7 @@ ledger.transactions (
     txn_id          VARCHAR(30) PRIMARY KEY,    -- TXN-20240115-XXXXXX
     txn_type        VARCHAR(30) NOT NULL,       -- TRANSFER, PAYMENT_DEBIT, INTEREST_CREDIT, etc.
     status          VARCHAR(20) NOT NULL,       -- PENDING, POSTED, REVERSED, FAILED
-    amount          NUMERIC(20,4) NOT NULL,
+    amount          BIGINT NOT NULL,             -- paise (integer minor units)
     currency        CHAR(3) NOT NULL,
     posting_date    DATE NOT NULL,
     value_date      DATE NOT NULL,
@@ -159,7 +159,7 @@ ledger.journal_entries (
     account_id      VARCHAR(25) NOT NULL,
     gl_code         VARCHAR(20) NOT NULL,       -- Chart of accounts code
     entry_type      CHAR(1) NOT NULL CHECK (entry_type IN ('D', 'C')), -- Debit/Credit
-    amount          NUMERIC(20,4) NOT NULL CHECK (amount > 0),
+    amount          BIGINT NOT NULL CHECK (amount > 0), -- paise (integer minor units)
     currency        CHAR(3) NOT NULL,
     value_date      DATE NOT NULL,
     posting_date    DATE NOT NULL,
@@ -193,7 +193,7 @@ payments.payments (
     payment_type    VARCHAR(20) NOT NULL,       -- NEFT, RTGS, IMPS, SWIFT
     status          VARCHAR(30) NOT NULL,       -- INITIATED, PENDING_APPROVAL, ...
     source_account  VARCHAR(25) NOT NULL,
-    amount          NUMERIC(20,4) NOT NULL,
+    amount          BIGINT NOT NULL,             -- paise (integer minor units)
     currency        CHAR(3) NOT NULL,
     purpose_code    VARCHAR(20),
     narration       VARCHAR(500),
@@ -391,8 +391,8 @@ This tells the customer the balance may be up to a few seconds old — sufficien
 
 ## 11. Interview-Level Discussion Points
 
-**Q: Why NUMERIC(20,4) and not FLOAT or DECIMAL?**
-A: `FLOAT` uses IEEE 754 floating-point which has binary representation errors. `0.1 + 0.2 = 0.30000000004` in floating-point. For financial calculations, this is unacceptable. `NUMERIC(20,4)` is PostgreSQL's exact decimal type — no rounding error. Scale 4 supports currencies with up to 4 decimal places (Japanese Yen has 0, KWD has 3, some crypto has 8 — need to decide based on product scope).
+**Q: Why BIGINT paise and not FLOAT or NUMERIC?**
+A: `FLOAT` uses IEEE 754 floating-point which has binary representation errors. `0.1 + 0.2 = 0.30000000004` in floating-point. For financial calculations, this is unacceptable. `NUMERIC` is exact but heavier to compute and easy to misuse (implicit rounding on scale mismatch). Storing amounts as `BIGINT` in paise (integer minor units) gives exact arithmetic, the fastest comparisons and sums, and makes the double-entry invariant a plain integer equality. This matches the roadmap non-negotiable ("integer amounts, never float") and the Phase 0 implementation. API responses convert paise to rupees as `BigDecimal` at the boundary. For multi-currency support, store the currency's minor-unit exponent (JPY has 0, KWD has 3) and always persist in minor units.
 
 **Q: How do you guarantee the double-entry balance at the database level?**
 A: The application enforces it in the Transaction aggregate. Additionally, a deferred constraint trigger can verify that for every `txn_id`, sum(debits) = sum(credits) at transaction commit time. This is defense-in-depth. If there's a bug in the application code, the database rejects the commit.

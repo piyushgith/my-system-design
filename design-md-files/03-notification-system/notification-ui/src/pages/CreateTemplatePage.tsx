@@ -130,10 +130,11 @@ export function CreateTemplatePage() {
                 {...register('subject')}
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="bodyHtml" className="block text-sm font-medium text-gray-700 mb-1">
                   Body HTML
                 </label>
                 <textarea
+                  id="bodyHtml"
                   rows={5}
                   placeholder="<p>Hello {{user_name}},</p>"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"

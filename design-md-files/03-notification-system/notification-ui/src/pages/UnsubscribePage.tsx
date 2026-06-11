@@ -6,21 +6,27 @@ import { Spinner } from '../components/ui/Spinner'
 
 type FetchState = 'loading' | 'success' | 'error'
 
+interface PageState {
+  status: FetchState
+  errorMsg: string
+}
+
 export function UnsubscribePage() {
   const [params] = useSearchParams()
   const token = params.get('token')
-  const [fetchState, setFetchState] = useState<FetchState>('loading')
-  const [errorMsg, setErrorMsg] = useState('')
+  const [{ status: fetchState, errorMsg }, setPageState] = useState<PageState>({
+    status: 'loading',
+    errorMsg: '',
+  })
 
   useEffect(() => {
     if (!token) return
     apiClient
       .post(`/api/v1/preferences/unsubscribe?token=${encodeURIComponent(token)}`)
-      .then(() => setFetchState('success'))
-      .catch((err: unknown) => {
-        setFetchState('error')
-        setErrorMsg(extractErrorMessage(err))
-      })
+      .then(() => setPageState({ status: 'success', errorMsg: '' }))
+      .catch((err: unknown) =>
+        setPageState({ status: 'error', errorMsg: extractErrorMessage(err) }),
+      )
   }, [token])
 
   return (

@@ -40,7 +40,7 @@ CREATE TABLE borrowers (
     kyc_completed_at    TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    is_deleted          BOOLEAN DEFAULT FALSE,  -- GDPR soft delete
+    is_deleted          BOOLEAN DEFAULT FALSE,  -- DPDP Act soft delete (erasure)
     version             BIGINT NOT NULL DEFAULT 0
 );
 ```
@@ -276,7 +276,7 @@ CREATE TABLE disbursement_sagas (
 
 ## Soft Delete Strategy
 
-- **Borrowers:** `is_deleted = TRUE` (GDPR erasure — anonymize PII, retain skeleton)
+- **Borrowers:** `is_deleted = TRUE` (DPDP Act erasure — anonymize PII, retain skeleton; erasure is overridden by RBI's 10-year loan record retention where the loan relationship exists)
 - **Applications:** Never deleted — regulatory requirement
 - **Loan accounts:** Never deleted — 10-year retention
 - **Documents:** S3 files deleted after retention period; metadata row retained
