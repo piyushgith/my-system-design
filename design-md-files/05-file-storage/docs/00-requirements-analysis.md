@@ -48,6 +48,8 @@ Define the full scope of a production-grade file storage platform — functional
 | Consistency | Strong consistency for metadata, eventual for CDN propagation |
 | File size limit | 5 GB per file (chunked into 5–10 MB blocks) |
 | Sync client lag | < 5 seconds for file change to appear on another device |
+| RTO (Recovery Time Objective) | < 15 min for metadata service (Multi-AZ failover); object storage is independently replicated |
+| RPO (Recovery Point Objective) | < 1 min for metadata (PostgreSQL WAL); 0 for stored chunks (S3-class 11-nines durability) |
 
 ---
 

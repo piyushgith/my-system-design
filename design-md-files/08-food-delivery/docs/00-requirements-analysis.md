@@ -99,6 +99,8 @@ Define the complete functional and non-functional requirements for a food delive
 - Zero order data loss. Orders must survive any single-node failure.
 - Payment events must be durable — Kafka with replication factor 3, min ISR 2.
 - Active orders must survive an Order Service restart (state stored in DB, not memory).
+- **RTO (Recovery Time Objective):** < 5 min for order placement (Multi-AZ DB failover); < 15 min for non-critical services (search, analytics).
+- **RPO (Recovery Point Objective):** 0 for orders and payment events (synchronous DB commit + Kafka RF3); < 30 s for delivery-tracking location state.
 
 ### 2.5 Scalability
 

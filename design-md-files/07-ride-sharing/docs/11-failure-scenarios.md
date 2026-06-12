@@ -385,7 +385,7 @@ DRIVER_ARRIVED → (wait up to 10 minutes) →
 
 ## 11. Failure Prevention: Chaos Engineering
 
-At Uber/Taking scale, failures are expected. Chaos engineering proactively tests resilience.
+At Uber/Hyperscaler scale, failures are expected. Chaos engineering proactively tests resilience.
 
 | Experiment | What It Tests | Frequency |
 |---|---|---|

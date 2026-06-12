@@ -248,7 +248,7 @@ Migrations run on startup before app accepts traffic. Kubernetes init containers
 
 ## Multi-Region Architecture
 
-At Taking scale: active-active multi-region.
+At Hyperscaler scale: active-active multi-region.
 
 ```
 Region: ap-south-1 (Mumbai)    ← Indian users (primary)

@@ -46,6 +46,8 @@ Define the functional and non-functional requirements, constraints, assumptions,
 | Read:Write ratio | ~100:1 (extremely read-heavy) |
 | Data retention | Configurable per URL; default permanent |
 | Security | URLs must not be guessable/enumerable |
+| RTO (Recovery Time Objective) | < 5 min for redirect path (Multi-AZ failover); < 30 min for creation/analytics |
+| RPO (Recovery Point Objective) | < 1 min for URL records (WAL replication); analytics events may lose up to one Kafka segment |
 
 ---
 

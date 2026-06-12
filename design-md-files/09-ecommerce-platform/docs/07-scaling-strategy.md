@@ -15,7 +15,7 @@ Define horizontal/vertical scaling, caching layers, load balancing, rate limitin
 | Startup | 1K/day | 50 RPS | Monolith, single Postgres, Redis |
 | Growth | 50K/day | 2,000 RPS | 3 app instances, Postgres primary+replica, Redis cluster |
 | Scale | 500K/day | 20,000 RPS | Domain services, Kafka, ElasticSearch, CDN |
-| Taking | 5M+/day | 200,000 RPS | Multi-region, active-active, CQRS, sharded DB |
+| Hyperscaler | 5M+/day | 200,000 RPS | Multi-region, active-active, CQRS, sharded DB |
 
 ---
 
@@ -205,6 +205,37 @@ Internet → CloudFront CDN
 | 10K-100K | Add read replicas + Redis | Read traffic dominates |
 | 100K-1M | Horizontal app scaling + Kafka | Write throughput needed |
 | 1M+ | Service decomposition + sharding | Bounded contexts overwhelm single DB |
+
+---
+
+## Scaling to 2M RPS Peak (Black Friday)
+
+The NFRs state **500K RPS sustained, 2M RPS peak**. The Scaling Tiers table tops out at 200K RPS per the "Hyperscaler" steady state — the 4× jump to peak is a distinct problem that steady-state sizing does not solve. The peak is handled by composition of the levers below, not by provisioning 2M RPS of origin capacity year-round.
+
+### Where the 2M RPS Actually Lands
+
+| Traffic class | Share of peak | Absorbed by | Origin RPS reaching services |
+|---|---|---|---|
+| Catalog/product page reads | ~70% (1.4M) | CDN + Redis (80–95% hit) | ~70K–280K |
+| Search | ~15% (300K) | Elasticsearch read cluster | ~300K (isolated from OLTP) |
+| Cart ops | ~10% (200K) | Redis-first, no DB write | ~0 DB, 200K Redis |
+| Order placement (writes) | ~5% (100K) | PostgreSQL write path + queue | 100K — the true hard limit |
+
+**Key insight:** Only the ~5% write traffic (order placement) is genuinely irreducible load on the transactional core. The CDN/Redis/Elasticsearch tiers absorb the other 95% before it reaches PostgreSQL, so the origin never sees 2M RPS.
+
+### Handling the Peak
+
+- **Predictive pre-scaling**: Black Friday is a known date. Pre-scale pods, read replicas, and Redis shards on a schedule (not reactive HPA alone — reactive scaling lags a sudden spike by minutes). Combine scheduled scaling for the baseline lift with HPA for the residual.
+- **Cell-based isolation**: Partition the fleet into independent cells (by user shard or region). A cell failure under peak load degrades a fraction of users, not all — prevents a single overloaded pool from cascading.
+- **Write-path shedding**: Order placement is queue-backed (reservation in Redis → Kafka → async order creation). At peak, the queue absorbs the burst; PostgreSQL drains at its sustainable write rate rather than being driven to collapse. This is the same mechanism as the flash-sale path, applied platform-wide.
+- **Multi-region active-active**: 2M RPS distributed across 3+ regions is ~700K RPS/region — within the per-region steady-state envelope. GeoDNS routes users to the nearest region; inventory is the one globally-consistent resource (see inventory reconciliation in 05-database-design.md).
+- **Graceful degradation under overload**: Shed non-essential features first (recommendations, reviews, "customers also bought") to preserve the browse→cart→checkout critical path. A degraded but functional checkout beats a complete outage.
+
+### What Breaks First at 2M RPS
+
+1. **PostgreSQL write connections** on order placement — mitigated by PgBouncer transaction pooling + queue-backed writes (above).
+2. **Redis hot key** on a single viral product's inventory counter — mitigated by sharding the counter across N keys and summing, or per-warehouse counters.
+3. **Elasticsearch query queue saturation** — mitigated by a dedicated peak read cluster and aggressive result caching.
 
 ---
 

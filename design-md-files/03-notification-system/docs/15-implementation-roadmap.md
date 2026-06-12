@@ -279,6 +279,22 @@ Fanout Service queries ML Service (async, low priority):
 
 ---
 
+## Infrastructure Cost Estimate per Phase
+
+Order-of-magnitude monthly cloud-infra cost (AWS-equivalent). Excludes external provider fees (SendGrid/Twilio/FCM), which dominate at campaign scale and are billed per message, and excludes staff cost.
+
+| Phase | Monthly infra | Primary cost drivers |
+|-------|---------------|----------------------|
+| 0 — Foundation | ~$150 | Single app instance, small RDS, Redis micro; providers pay-as-you-go |
+| 1 — MVP | ~$600 | + MSK Kafka (2 brokers), Redis, 2 app instances, basic Prometheus/Grafana |
+| 2 — Multi-Channel | ~$2,000 | 4 dispatchers scaled independently, Redis cluster, MSK scale-up, DLQ infra |
+| 3 — Scale + Campaigns | ~$6,000 | Campaign throughput (50K msg/sec bursts), ClickHouse cluster, priority lanes |
+| 4 — Intelligence | ~$12,000+ | Multi-region active-active (3 regions, MirrorMaker2), ML send-time, DR standby |
+
+**Cost note:** At 50M-user campaign volume, per-message provider fees (e.g., SMS at ~$0.005–0.05/msg) can exceed total infra cost by 10–100×. Provider cost modeling — not infra — is the dominant line item; surface it explicitly in any capacity/budget review.
+
+---
+
 ## Interview Discussion Points
 
 - Why not build all 4 channels in Phase 1?

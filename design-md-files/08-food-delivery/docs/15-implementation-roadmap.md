@@ -226,6 +226,21 @@ ML-based ETA and ranking, dark kitchen integration, loyalty program, subscriptio
 
 ---
 
+## Infrastructure Cost Estimate per Phase
+
+Order-of-magnitude monthly cloud-infra cost (AWS-equivalent), infra only — excludes staff, payment-gateway fees, and SMS/push provider fees.
+
+| Phase | Monthly infra | Primary cost drivers |
+|-------|---------------|----------------------|
+| MVP — Single City | ~$300 | Monolith, PostgreSQL, Firebase, manual dispatch; one city |
+| V1 — Automated Core | ~$2,000 | Redis GEO, WebSocket fleet, Kafka, Elasticsearch, automated matching |
+| V2 — Scale & Multi-City | ~$8,000 | Saga services, Flink, ClickHouse, multi-city sharding, surge engine |
+| V3 — Intelligence & Ecosystem | ~$30,000+ | ML ranking/ETA pipeline, service mesh, dark kitchens, grocery vertical |
+
+**Cost note:** Delivery-partner location ingestion (50K RPS writes to Redis GEO + Kafka) and Elasticsearch restaurant search are the dominant infra drivers; payment-gateway and SMS fees are a separate per-transaction line item that scales with order volume.
+
+---
+
 ## Overengineering Traps
 
 | Temptation | Why to Resist |

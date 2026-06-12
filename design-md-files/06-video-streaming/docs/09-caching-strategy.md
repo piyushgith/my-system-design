@@ -116,9 +116,37 @@ Rule 6: /v1/auth/* → Bypass CDN, no-cache
 
 ---
 
-## 4. Layer 4: Redis Application Cache
+## 4. Layer 3: Origin Shield
 
-### 4.1 Video Metadata Cache
+The Origin Shield is a single designated mid-tier cache PoP that sits between the edge PoPs and the CDN Origin Service. Every edge cache miss is routed through the shield rather than directly to origin. Its job is **request collapsing and origin protection**, not user-facing latency.
+
+### 4.1 Why an Origin Shield
+
+- At 200+ edge PoPs, a newly published or viral video produces a simultaneous cache-miss from every edge location. Without a shield, all of those misses hit the CDN Origin Service at once (origin stampede).
+- The shield collapses N concurrent edge misses for the same object into **one** origin fetch; the rest wait on the in-flight request and are served from the shield once it fills.
+- This is the primary defense for the "thundering herd on a viral video" scenario referenced in 01-high-level-architecture.md — the shield absorbs the miss storm before it reaches the origin or PostgreSQL/Redis behind it.
+
+### 4.2 Shield Behavior
+
+| Aspect | Design |
+|---|---|
+| Placement | One shield PoP per region (close to origin), selected by the CDN provider |
+| Cache contents | Same objects as edge (segments, manifests, thumbnails) but larger footprint and longer retention |
+| Request collapsing | Concurrent misses for the same cache key deduplicated into a single origin request |
+| Segment TTL | ≥ edge TTL (30 days for immutable segments) — shield rarely evicts hot content |
+| Manifest TTL | Matches edge (60s); shield still collapses the per-minute refresh storm |
+| Failure mode | If shield is unavailable, edges fail open directly to origin (degraded protection, not an outage) |
+
+### 4.3 Tradeoffs
+
+- **Pro**: Origin egress and CDN Origin Service load drop sharply (one fetch per object per region instead of one per edge PoP). Directly improves the > 95% CDN hit-ratio target by shielding the remaining misses.
+- **Con**: Adds one network hop on a true cold miss (edge → shield → origin) — a few ms, acceptable because cold misses are rare. A shield-region outage concentrates load until edges fail open.
+
+---
+
+## 5. Layer 4: Redis Application Cache
+
+### 5.1 Video Metadata Cache
 
 ```
 Cache Pattern: Cache-Aside (Lazy Loading)
@@ -147,7 +175,7 @@ Write Path:
 - On update, reading the DB and writing Redis is not atomic; a race condition between two concurrent updates can store stale data permanently
 - Delete is safe: worst case is one extra DB read on the next request
 
-### 4.2 View Count Cache (Write-Heavy)
+### 5.2 View Count Cache (Write-Heavy)
 
 ```
 Key:   video:views:{video_id}
@@ -165,7 +193,7 @@ Flush job (every 60 seconds):
   Note: GETSET is atomic — no view events lost between get and set
 ```
 
-### 4.3 Like Count Cache
+### 5.3 Like Count Cache
 
 Same pattern as view count. Separate concern: per-user like state.
 
@@ -185,7 +213,7 @@ Per-user like state (for "did I like this video?" check):
   Solution: Only cache active users' sets; cold users evicted (TTL)
 ```
 
-### 4.4 Channel Metadata Cache
+### 5.4 Channel Metadata Cache
 
 ```
 Key:   channel:meta:{channel_id}
@@ -199,7 +227,7 @@ High read rate: Every video page includes channel info.
 subscriber_count is approximate — Redis shows approximate, PostgreSQL is source of truth.
 ```
 
-### 4.5 Recommendation Cache
+### 5.5 Recommendation Cache
 
 ```
 Key:   rec:feed:{user_id}
@@ -216,7 +244,7 @@ Fallback if cache miss:
   - This avoids cold-start latency on recommendation service
 ```
 
-### 4.6 Search Suggestion Cache
+### 5.6 Search Suggestion Cache
 
 ```
 Prefix-based autocomplete:
@@ -228,7 +256,7 @@ Prefix-based autocomplete:
   Size cap: Only cache prefixes of length >= 3 characters
 ```
 
-### 4.7 Rate Limit State
+### 5.7 Rate Limit State
 
 ```
 Key:   ratelimit:{user_id}:{endpoint}:{window_start}
@@ -249,7 +277,7 @@ Sliding window implementation:
     5. EXPIRE to keep TTL rolling
 ```
 
-### 4.8 Session and Auth State
+### 5.8 Session and Auth State
 
 ```
 JWT Blacklist (for explicitly revoked tokens):
@@ -267,7 +295,7 @@ Active Upload Sessions:
 
 ---
 
-## 5. HyperLogLog for Unique Viewer Estimation
+## 6. HyperLogLog for Unique Viewer Estimation
 
 Standard approach for exact unique viewer count would require storing every user_id per video — billions of entries.
 
@@ -290,9 +318,9 @@ This is completely acceptable for creator analytics.
 
 ---
 
-## 6. Thundering Herd Protection
+## 7. Thundering Herd Protection
 
-### 6.1 Cache Stampede on Expiry
+### 7.1 Cache Stampede on Expiry
 
 **Problem**: 10,000 concurrent requests hit a key that just expired → all simultaneously go to DB → DB overwhelmed.
 
@@ -314,7 +342,7 @@ Redis Pseudocode:
    d. After 5 retries → fetch from DB directly (lock expired, circuit breaker)
 ```
 
-### 6.2 Viral Video Cache Warming
+### 7.2 Viral Video Cache Warming
 
 When a video goes viral (view rate suddenly increases > 10x baseline):
 1. Detected by analytics consumer monitoring view rate
@@ -324,7 +352,7 @@ When a video goes viral (view rate suddenly increases > 10x baseline):
 
 ---
 
-## 7. Cache Sizing and Memory Estimation
+## 8. Cache Sizing and Memory Estimation
 
 ```
 Video metadata cache (300s TTL):
@@ -355,7 +383,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 
 ---
 
-## 8. Cache Invalidation Strategy Summary
+## 9. Cache Invalidation Strategy Summary
 
 | Cache Layer | Invalidation Method | Trigger |
 |---|---|---|
@@ -370,7 +398,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 
 ---
 
-## 9. Cache Monitoring and Alerts
+## 10. Cache Monitoring and Alerts
 
 | Metric | Alert Threshold | Action |
 |---|---|---|
@@ -383,7 +411,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 
 ---
 
-## 10. Taking vs Startup Differences
+## 11. Hyperscaler vs Startup Differences
 
 **Startup approach**:
 - Simple Redis cache with standard Cache-Aside pattern
@@ -391,7 +419,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 - TTL-based invalidation only
 - Single Redis instance (no cluster) for the first year
 
-**Taking approach**:
+**Hyperscaler approach**:
 - Multi-layer caching (browser, CDN edge, origin shield, application, local)
 - Custom Redis data structures per use case (HLL, sorted sets, Lua scripts for atomic operations)
 - Active cache warming for high-priority content
@@ -401,7 +429,7 @@ This maps to: 6 × 16GB Redis nodes (6 shards, 1 replica each)
 
 ---
 
-## 11. Interview-Level Discussion Points
+## 12. Interview-Level Discussion Points
 
 - How do you handle the "cold start" problem for a new video? (First request causes all cache misses up to DB; for high-subscriber creators, pro-actively warm caches when `VideoPublished` event fires; for others, accept the cold start penalty on first few requests)
 - Why not use write-through caching instead of cache-aside? (Write-through requires synchronous write to both DB and cache on every write; for view events at 11,600/sec, this doubles write latency and doubles write load; cache-aside with async flush is better for high-write counters)

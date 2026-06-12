@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define a phased implementation plan that progressively builds the chat platform from a functional MVP to Taking-scale production system. Each phase has clear scope, technical evolution, infrastructure evolution, team requirements, and risk assessment.
+Define a phased implementation plan that progressively builds the chat platform from a functional MVP to Hyperscaler-scale production system. Each phase has clear scope, technical evolution, infrastructure evolution, team requirements, and risk assessment.
 
 ---
 
@@ -16,7 +16,7 @@ Define a phased implementation plan that progressively builds the chat platform 
 | Phase 1 | Production Foundation | 8–12 weeks | 100K concurrent users | 4–6 engineers |
 | Phase 2 | Scale & Reliability | 12–16 weeks | 1M concurrent users | 8–12 engineers |
 | Phase 3 | Platform Features | 12–16 weeks | 10M concurrent users | 15–20 engineers |
-| Phase 4 | Taking Scale | Ongoing | 50M+ concurrent users | 30+ engineers |
+| Phase 4 | Hyperscaler Scale | Ongoing | 50M+ concurrent users | 30+ engineers |
 
 ---
 
@@ -239,7 +239,7 @@ Each extraction:
 
 ---
 
-## Phase 4: Taking Scale — "Make It Global"
+## Phase 4: Hyperscaler Scale — "Make It Global"
 
 ### Scope
 
@@ -282,6 +282,22 @@ Solution: **Regional home-region assignment**
 - Writes always go to home region's Cassandra (synchronously)
 - Other regions receive async replicas
 - If the sender is in a different region than the conversation's home region: accept the latency of cross-region write
+
+---
+
+## Infrastructure Cost Estimate per Phase
+
+Order-of-magnitude monthly cloud-infra cost (AWS-equivalent), infra only — excludes staff and client-side push/CDN provider fees. Chat at messaging-app scale is genuinely capital-intensive; the numbers below reflect that honestly.
+
+| Phase | Monthly infra | Primary cost drivers |
+|-------|---------------|----------------------|
+| 0 — MVP | ~$200 | Single app, PostgreSQL, Redis; messages in PostgreSQL (no Cassandra yet) |
+| 1 — Production Foundation | ~$1,500 | Cassandra 3-node, Kafka, Redis, a few WebSocket servers, monitoring |
+| 2 — Scale & Reliability | ~$15,000 | Cassandra cluster, regional WebSocket fleet ramp, Kafka scale, fan-out service |
+| 3 — Platform Features | ~$60,000 | Multi-region, large Cassandra + Kafka, fan-out fleet, search (Elasticsearch) |
+| 4 — Hyperscaler Scale | ~$250,000+ | 50M concurrent connections → ~1,000+ WS servers, multi-region Cassandra/Kafka, E2EE infra |
+
+**Cost note:** The WebSocket connection fleet (memory-bound, ~50K conn/server → 1,000 servers at peak) and Cassandra storage (4 TB/day write) are the two dominant drivers at scale. Connection cost is largely fixed by concurrent-user count, not message volume — a key budgeting insight.
 
 ---
 

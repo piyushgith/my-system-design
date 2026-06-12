@@ -10,7 +10,7 @@ Prepare for candidate's system design interviews by anticipating every follow-up
 
 ## The Core Interview Flow
 
-A Taking interviewer follows a predictable pattern for chat:
+A Hyperscaler interviewer follows a predictable pattern for chat:
 
 ```
 1. Requirements clarification (5 min)
@@ -179,7 +179,7 @@ Fallback: `SELECT MAX(sequence_num) FROM messages WHERE conv_id = ? AND time_buc
 
 ### "What would you do differently if you had 5 engineers vs 500?"
 
-| 5 Engineers (Startup) | 500 Engineers (Taking) |
+| 5 Engineers (Startup) | 500 Engineers (Hyperscaler) |
 |----------------------|----------------------|
 | Single Spring Boot app | 10+ microservices |
 | PostgreSQL for everything | Cassandra + PostgreSQL + Redis |

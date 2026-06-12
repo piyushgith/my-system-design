@@ -219,7 +219,7 @@ Before being asked: "One thing I'd want to design carefully is what happens when
 
 ### Discuss the "What Breaks First" Progression
 
-Show awareness of scaling inflection points (see Part 2 above). Interviewers at Taking level want to see that you've thought beyond the current scale.
+Show awareness of scaling inflection points (see Part 2 above). Interviewers at Hyperscaler level want to see that you've thought beyond the current scale.
 
 ### Compliance Awareness
 

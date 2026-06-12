@@ -385,9 +385,9 @@ Redis INCR is atomic and handles thousands of concurrent operations per second.
 
 ---
 
-## 12. Taking vs Startup Scaling Differences
+## 12. Hyperscaler vs Startup Scaling Differences
 
-| Concern | Startup (< 1M orders/day) | Taking-Scale (> 10M orders/day) |
+| Concern | Startup (< 1M orders/day) | Hyperscaler-Scale (> 10M orders/day) |
 |---------|--------------------------|-------------------------------|
 | Caching | Redis, simple TTL | Multi-layer: L1 in-process, L2 Redis, L3 CDN |
 | DB scaling | Read replicas | Sharding + CQRS + separate read models |

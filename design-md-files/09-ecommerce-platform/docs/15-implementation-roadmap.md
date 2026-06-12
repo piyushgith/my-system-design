@@ -4,7 +4,7 @@
 
 ## Objective
 
-Define a phased implementation plan from MVP to Taking-scale, with feature scope, architecture evolution, infrastructure requirements, risks, and team scaling considerations at each phase.
+Define a phased implementation plan from MVP to Hyperscaler-scale, with feature scope, architecture evolution, infrastructure requirements, risks, and team scaling considerations at each phase.
 
 ---
 
@@ -231,7 +231,7 @@ Handle viral moments. Compete on product experience. Advanced personalization.
 
 ---
 
-## Phase 4 — Taking Scale (Year 2+)
+## Phase 4 — Hyperscaler Scale (Year 2+)
 
 ### Goal
 
@@ -269,10 +269,10 @@ Global platform. Multi-region active-active. Self-healing infrastructure.
 
 ---
 
-## MVP to Taking: Architecture Evolution Summary
+## MVP to Hyperscaler: Architecture Evolution Summary
 
 ```
-MVP → V1 → V2 → V3 → Taking
+MVP → V1 → V2 → V3 → Hyperscaler
 Monolith → Modular Monolith → Service Extraction → Multi-Region
 Postgres only → + Redis + S3 → + Kafka + ES → + ML + Multi-region → Event Sourcing
 Manual deploy → CI/CD → Kubernetes → Multi-region Kubernetes → Service Mesh
@@ -288,7 +288,23 @@ Manual deploy → CI/CD → Kubernetes → Multi-region Kubernetes → Service M
 | V1 | High | Medium | Low | Low |
 | V2 | Medium | High | Medium | Medium |
 | V3 | Low | High | High | High |
-| Taking | Low | Very High | Very High | Very High |
+| Hyperscaler | Low | Very High | Very High | Very High |
+
+---
+
+## Infrastructure Cost Estimate per Phase
+
+Order-of-magnitude monthly cloud-infra cost (AWS-equivalent), infra only — excludes staff, payment-gateway fees, and tax/logistics API fees.
+
+| Phase | Monthly infra | Primary cost drivers |
+|-------|---------------|----------------------|
+| MVP | ~$200 | Monolith, single PostgreSQL; get orders flowing |
+| V1 — Core Commerce | ~$1,500 | + Redis, S3, payment integration, read replica |
+| V2 — Scale Foundations | ~$10,000 | Kafka, Elasticsearch, read replicas, inventory Redis atomics, sharding prep |
+| V3 — Flash Sales & Advanced | ~$40,000 | Multi-region, flash-sale isolation, ML fraud/recommendations, ClickHouse |
+| Hyperscaler Scale | ~$150,000+ | 2M RPS peak, multi-region active-active, event sourcing, service mesh |
+
+**Cost note:** Flash-sale peaks (2M RPS vs 500K sustained) force provisioning for ~4× baseline or aggressive autoscaling; the gap between provisioned and steady-state capacity is the single largest cost-efficiency lever. Payment-gateway fees (~1.5–3% of GMV) dwarf infra cost and belong in a separate unit-economics model.
 
 ---
 

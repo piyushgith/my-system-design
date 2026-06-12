@@ -271,7 +271,7 @@ sequenceDiagram
 
 ---
 
-## Migration Path: Startup → Taking Scale
+## Migration Path: Startup → Hyperscaler Scale
 
 ```
 Phase 1 (MVP):        Single Spring Boot app

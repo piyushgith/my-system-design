@@ -116,7 +116,7 @@ Define the functional and non-functional requirements for a production-grade Pas
 
 | Direction | Estimate |
 |-----------|----------|
-| Inbound (writes, 40 RPS × 10 KB) | ~400 KB/s = ~3.5 Gbps peak |
+| Inbound (writes, 40 RPS × 10 KB) | ~400 KB/s = ~3.2 Mbps peak |
 | Outbound (reads, 400 RPS × 10 KB) | ~4 MB/s = ~32 Mbps average; CDN absorbs most |
 
 ---
