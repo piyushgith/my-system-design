@@ -32,13 +32,16 @@ public class FileService {
     private final StoredFileRepository fileRepository;
     private final ContentBlobRepository blobRepository;
     private final StorageStrategyResolver resolver;
+    private final PresignedUrlCache urlCache;
 
     public FileService(StoredFileRepository fileRepository,
                        ContentBlobRepository blobRepository,
-                       StorageStrategyResolver resolver) {
+                       StorageStrategyResolver resolver,
+                       PresignedUrlCache urlCache) {
         this.fileRepository = fileRepository;
         this.blobRepository = blobRepository;
         this.resolver = resolver;
+        this.urlCache = urlCache;
     }
 
     /**
@@ -127,11 +130,17 @@ public class FileService {
     /** Presigned download URL, when the backend supports it; otherwise {@link Optional#empty()}. */
     @Transactional(readOnly = true)
     public Optional<String> presignedDownloadUrl(StoredFile file, java.time.Duration ttl) {
+        Optional<String> cached = urlCache.get(file.getId());
+        if (cached.isPresent()) {
+            return cached;
+        }
         StorageStrategy storage = resolver.byName(file.getBackend());
         if (!storage.supportsPresignedUrls()) {
             return Optional.empty();
         }
-        return Optional.of(storage.presignedGetUrl(file.getStorageKey(), ttl));
+        String url = storage.presignedGetUrl(file.getStorageKey(), ttl);
+        urlCache.put(file.getId(), url, ttl);
+        return Optional.of(url);
     }
 
     /**
@@ -152,6 +161,7 @@ public class FileService {
             }
         });
         fileRepository.delete(file);
+        urlCache.evict(fileId);
     }
 
     private Path stageToTemp(InputStream content) {

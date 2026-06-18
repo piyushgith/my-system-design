@@ -33,18 +33,32 @@ public class ExpiredSessionReaper {
     /** Runs hourly (after an initial delay) to abort expired, still-in-progress sessions. */
     @Scheduled(fixedDelayString = "${app.storage.reaper.interval:PT1H}", initialDelayString = "PT1M")
     public void reapExpiredSessions() {
-        List<UploadSession> expired = sessionRepository
-                .findByStatusAndExpiresAtBefore(UploadStatus.IN_PROGRESS, Instant.now());
-        if (expired.isEmpty()) {
-            return;
+        Instant now = Instant.now();
+
+        List<UploadSession> expiredInProgress = sessionRepository
+                .findByStatusAndExpiresAtBefore(UploadStatus.IN_PROGRESS, now);
+        if (!expiredInProgress.isEmpty()) {
+            log.info("Reaping {} expired IN_PROGRESS session(s)", expiredInProgress.size());
+            for (UploadSession session : expiredInProgress) {
+                try {
+                    uploadService.abort(session.getId());
+                } catch (RuntimeException e) {
+                    log.warn("Failed to reap upload session {}: {}", session.getId(), e.getMessage());
+                }
+            }
         }
-        log.info("Reaping {} expired upload session(s)", expired.size());
-        for (UploadSession session : expired) {
-            try {
-                // abort() is idempotent and cleans up storage parts + part rows + marks ABORTED.
-                uploadService.abort(session.getId());
-            } catch (RuntimeException e) {
-                log.warn("Failed to reap upload session {}: {}", session.getId(), e.getMessage());
+
+        // Sessions stuck in PROCESSING (async finalizer crashed or never fired) are also cleaned up.
+        List<UploadSession> stuckProcessing = sessionRepository
+                .findByStatusAndExpiresAtBefore(UploadStatus.PROCESSING, now);
+        if (!stuckProcessing.isEmpty()) {
+            log.info("Reaping {} stuck PROCESSING session(s)", stuckProcessing.size());
+            for (UploadSession session : stuckProcessing) {
+                try {
+                    uploadService.markAbortedProcessing(session.getId());
+                } catch (RuntimeException e) {
+                    log.warn("Failed to reap PROCESSING session {}: {}", session.getId(), e.getMessage());
+                }
             }
         }
     }

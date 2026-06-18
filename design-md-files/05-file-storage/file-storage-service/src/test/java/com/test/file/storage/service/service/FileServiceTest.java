@@ -45,7 +45,7 @@ class FileServiceTest {
 
     @BeforeEach
     void setUp() {
-        fileService = new FileService(fileRepository, blobRepository, resolver);
+        fileService = new FileService(fileRepository, blobRepository, resolver, new PresignedUrlCache());
         when(resolver.active()).thenReturn(storage);
         when(resolver.byName(anyString())).thenReturn(storage);
         when(storage.name()).thenReturn("local");

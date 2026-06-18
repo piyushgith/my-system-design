@@ -12,10 +12,13 @@ import com.test.file.storage.service.catalog.UploadStatus;
 import com.test.file.storage.service.storage.PartETag;
 import com.test.file.storage.service.storage.StorageStrategy;
 import com.test.file.storage.service.storage.StorageStrategyResolver;
+import com.test.file.storage.service.web.dto.PresignedUploadInitResponse;
 import com.test.file.storage.service.web.error.InvalidUploadStateException;
 import com.test.file.storage.service.web.error.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.InputStream;
 import java.time.Duration;
@@ -33,23 +36,27 @@ import java.util.UUID;
 public class UploadService {
 
     private static final Duration SESSION_TTL = Duration.ofHours(24);
+    private static final Duration PRESIGNED_TTL = Duration.ofHours(1);
 
     private final UploadSessionRepository sessionRepository;
     private final UploadPartRepository partRepository;
     private final StoredFileRepository fileRepository;
     private final ContentBlobRepository blobRepository;
     private final StorageStrategyResolver resolver;
+    private final PresignedUploadFinalizer finalizer;
 
     public UploadService(UploadSessionRepository sessionRepository,
                          UploadPartRepository partRepository,
                          StoredFileRepository fileRepository,
                          ContentBlobRepository blobRepository,
-                         StorageStrategyResolver resolver) {
+                         StorageStrategyResolver resolver,
+                         PresignedUploadFinalizer finalizer) {
         this.sessionRepository = sessionRepository;
         this.partRepository = partRepository;
         this.fileRepository = fileRepository;
         this.blobRepository = blobRepository;
         this.resolver = resolver;
+        this.finalizer = finalizer;
     }
 
     @Transactional
@@ -186,6 +193,67 @@ public class UploadService {
         session.setStatus(UploadStatus.ABORTED);
         sessionRepository.save(session);
         partRepository.deleteBySessionId(sessionId);
+    }
+
+    /** Generates a presigned PUT URL so the client can upload bytes directly to object storage. */
+    @Transactional
+    public PresignedUploadInitResponse initPresigned(String fileName, String mimeType, String ownerId) {
+        StorageStrategy storage = resolver.active();
+        if (!storage.supportsPresignedUrls()) {
+            throw new UnsupportedOperationException(
+                    "Storage backend '" + storage.name() + "' does not support presigned upload URLs");
+        }
+        String sessionId = UUID.randomUUID().toString();
+        String storageKey = "files/" + sessionId + "/" + fileName;
+        String presignedUrl = storage.presignedPutUrl(storageKey, PRESIGNED_TTL);
+
+        Instant now = Instant.now();
+        UploadSession session = UploadSession.builder()
+                .id(sessionId)
+                .fileName(fileName)
+                .mimeType(mimeType)
+                .storageKey(storageKey)
+                .backend(storage.name())
+                .ownerId(ownerId)
+                .uploadedBytes(0)
+                .receivedParts(0)
+                .status(UploadStatus.IN_PROGRESS)
+                .createdAt(now)
+                .expiresAt(now.plus(PRESIGNED_TTL))
+                .build();
+        sessionRepository.save(session);
+
+        return new PresignedUploadInitResponse(sessionId, presignedUrl, now.plus(PRESIGNED_TTL));
+    }
+
+    /**
+     * Marks the session PROCESSING and schedules async finalization. Returns immediately (202).
+     * The finalizer runs after this transaction commits to avoid reading stale session state.
+     */
+    @Transactional
+    public void confirmPresigned(String sessionId, String contentHash, long sizeBytes) {
+        UploadSession session = requireInProgress(sessionId);
+        session.setStatus(UploadStatus.PROCESSING);
+        session.setUploadedBytes(sizeBytes);
+        sessionRepository.save(session);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                finalizer.finalize(sessionId, contentHash, sizeBytes);
+            }
+        });
+    }
+
+    /** Reaper hook: aborts sessions stuck in PROCESSING beyond their TTL. */
+    @Transactional
+    public void markAbortedProcessing(String sessionId) {
+        sessionRepository.findById(sessionId).ifPresent(session -> {
+            if (session.getStatus() == UploadStatus.PROCESSING) {
+                session.setStatus(UploadStatus.ABORTED);
+                sessionRepository.save(session);
+            }
+        });
     }
 
     @Transactional(readOnly = true)

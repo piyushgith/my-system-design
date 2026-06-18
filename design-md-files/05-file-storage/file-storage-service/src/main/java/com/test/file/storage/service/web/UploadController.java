@@ -2,6 +2,8 @@ package com.test.file.storage.service.web;
 
 import com.test.file.storage.service.service.UploadService;
 import com.test.file.storage.service.web.dto.FileMetadataResponse;
+import com.test.file.storage.service.web.dto.PresignedConfirmRequest;
+import com.test.file.storage.service.web.dto.PresignedUploadInitResponse;
 import com.test.file.storage.service.web.dto.UploadInitRequest;
 import com.test.file.storage.service.web.dto.UploadPartResponse;
 import com.test.file.storage.service.web.dto.UploadSessionResponse;
@@ -43,6 +45,33 @@ public class UploadController {
         UploadSessionResponse body = UploadSessionResponse.from(
                 uploadService.init(request.fileName(), request.mimeType(), ownerId));
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /**
+     * Requests a presigned PUT URL. The client uploads bytes directly to object storage; the app
+     * server is not in the data path. Returns 501 when the active backend doesn't support presigned URLs.
+     */
+    @PostMapping("/presigned-init")
+    public ResponseEntity<PresignedUploadInitResponse> presignedInit(
+            @Valid @RequestBody UploadInitRequest request,
+            @RequestHeader(value = "X-Owner-Id", required = false) String ownerId) {
+
+        PresignedUploadInitResponse body =
+                uploadService.initPresigned(request.fileName(), request.mimeType(), ownerId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /**
+     * Client calls this after the presigned PUT completes. Triggers async finalization (dedup + DB
+     * write) and returns 202; client polls {@code GET /{sessionId}} until status is COMPLETED.
+     */
+    @PostMapping("/{sessionId}/presigned-confirm")
+    public ResponseEntity<Void> presignedConfirm(
+            @PathVariable String sessionId,
+            @Valid @RequestBody PresignedConfirmRequest request) {
+
+        uploadService.confirmPresigned(sessionId, request.contentHash(), request.sizeBytes());
+        return ResponseEntity.accepted().build();
     }
 
     /** Uploads one part. Body is the raw part bytes; size is taken from {@code Content-Length}. */

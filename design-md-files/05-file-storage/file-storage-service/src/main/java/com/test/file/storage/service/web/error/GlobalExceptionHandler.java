@@ -50,6 +50,11 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Storage error", ex.getMessage(), "storage");
     }
 
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ProblemDetail handleUnsupported(UnsupportedOperationException ex) {
+        return problem(HttpStatus.NOT_IMPLEMENTED, "Not supported", ex.getMessage(), "not-supported");
+    }
+
     private ProblemDetail problem(HttpStatus status, String title, String detail, String slug) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setTitle(title);

@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,7 +54,7 @@ class UploadServiceTest {
     @BeforeEach
     void setUp() {
         uploadService = new UploadService(sessionRepository, partRepository, fileRepository,
-                blobRepository, resolver);
+                blobRepository, resolver, mock(PresignedUploadFinalizer.class));
         when(resolver.active()).thenReturn(storage);
         when(resolver.byName(anyString())).thenReturn(storage);
         when(storage.name()).thenReturn("local");
