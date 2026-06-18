@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap');
+
+@import 'tailwindcss';
+
+@theme {
+  --color-charcoal: #0f1117;
+  --color-surface: #161922;
+  --color-surface-elevated: #1e2230;
+  --color-border: #2a3042;
+  --color-cream: #f0ebe3;
+  --color-muted: #8b93a8;
+  --color-amber-400: #f5a623;
+  --color-amber-500: #e8940f;
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --shadow-glow: 0 0 24px rgb(245 166 35 / 0.25);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    background: var(--color-charcoal);
+    color: var(--color-cream);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out both;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Leaflet markers */
+.marker-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f5a623;
+  border: 2px solid #0f1117;
+  box-shadow: 0 0 12px rgb(245 166 35 / 0.6);
+}
+
+.marker-dot.driver {
+  width: 18px;
+  height: 18px;
+  background: #38bdf8;
+  box-shadow: 0 0 12px rgb(56 189 248 / 0.6);
+}
+
+.leaflet-container {
+  font-family: var(--font-body);
+}
