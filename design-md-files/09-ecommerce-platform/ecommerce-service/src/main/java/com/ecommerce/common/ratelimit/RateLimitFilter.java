@@ -35,19 +35,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final int authLimit;
     private final int checkoutLimit;
     private final Duration window;
+    private final boolean trustForwardedHeaders;
 
     public RateLimitFilter(StringRedisTemplate redis,
                            ObjectMapper objectMapper,
                            @Value("${app.ratelimit.enabled:true}") boolean enabled,
                            @Value("${app.ratelimit.auth-limit:10}") int authLimit,
                            @Value("${app.ratelimit.checkout-limit:20}") int checkoutLimit,
-                           @Value("${app.ratelimit.window-seconds:60}") long windowSeconds) {
+                           @Value("${app.ratelimit.window-seconds:60}") long windowSeconds,
+                           @Value("${app.ratelimit.trust-forwarded-headers:false}") boolean trustForwardedHeaders) {
         this.redis = redis;
         this.objectMapper = objectMapper;
         this.enabled = enabled;
         this.authLimit = authLimit;
         this.checkoutLimit = checkoutLimit;
         this.window = Duration.ofSeconds(windowSeconds);
+        this.trustForwardedHeaders = trustForwardedHeaders;
     }
 
     @Override
@@ -70,6 +73,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     /** Returns the request limit for the matched bucket, or -1 if the path is not rate limited. */
     private int limitFor(HttpServletRequest request) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return -1;
+        }
         String path = request.getRequestURI();
         if (path.startsWith("/v1/auth/")) {
             return authLimit;
@@ -93,7 +99,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
+        String forwarded = trustForwardedHeaders ? request.getHeader("X-Forwarded-For") : null;
         if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }

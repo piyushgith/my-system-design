@@ -55,6 +55,7 @@ app:
     auth-limit: 10          # requests per window for /v1/auth/**
     checkout-limit: 20      # requests per window for checkout
     window-seconds: 60
+    trust-forwarded-headers: ${RATE_LIMIT_TRUST_FORWARDED_HEADERS:false}
 
 logging:
   level:

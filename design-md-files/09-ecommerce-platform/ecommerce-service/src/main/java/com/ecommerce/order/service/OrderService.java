@@ -134,7 +134,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<OrderSummary> listOrders(UUID buyerId, int page, int size) {
-        return orderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId, pageable(page, size))
+        return orderRepository.findSummariesByBuyerId(buyerId, pageable(page, size))
                 .map(OrderSummary::from);
     }
 
@@ -162,10 +162,9 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderSummary> listAllOrders(OrderStatus status, int page, int size) {
         Pageable pageable = pageable(page, size);
-        Page<Order> orders = (status == null)
-                ? orderRepository.findAllByOrderByCreatedAtDesc(pageable)
-                : orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-        return orders.map(OrderSummary::from);
+        return (status == null)
+                ? orderRepository.findAllSummaries(pageable).map(OrderSummary::from)
+                : orderRepository.findSummariesByStatus(status, pageable).map(OrderSummary::from);
     }
 
     @Transactional

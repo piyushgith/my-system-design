@@ -1,6 +1,7 @@
 package com.ecommerce.order.service.dto;
 
 import com.ecommerce.order.domain.Order;
+import com.ecommerce.order.repository.OrderSummaryProjection;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,5 +22,15 @@ public record OrderSummary(
                 order.getCurrency(),
                 order.getItems().size(),
                 order.getCreatedAt());
+    }
+
+    public static OrderSummary from(OrderSummaryProjection projection) {
+        return new OrderSummary(
+                projection.getId(),
+                projection.getStatus().name(),
+                projection.getTotalAmount(),
+                projection.getCurrency(),
+                Math.toIntExact(projection.getItemCount()),
+                projection.getCreatedAt());
     }
 }

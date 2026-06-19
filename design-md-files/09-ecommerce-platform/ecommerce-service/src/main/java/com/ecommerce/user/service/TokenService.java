@@ -39,13 +39,30 @@ public class TokenService {
             return Optional.empty();
         }
         String userId = redis.opsForValue().get(KEY_PREFIX + token);
-        return Optional.ofNullable(userId).map(UUID::fromString);
+        return parseUserId(userId);
+    }
+
+    /** Atomically consumes a refresh token so concurrent refresh attempts cannot reuse it. */
+    public Optional<UUID> consume(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
+        String userId = redis.opsForValue().getAndDelete(KEY_PREFIX + token);
+        return parseUserId(userId);
     }
 
     /** Revokes a single refresh token (logout). */
     public void revoke(String token) {
         if (token != null && !token.isBlank()) {
             redis.delete(KEY_PREFIX + token);
+        }
+    }
+
+    private Optional<UUID> parseUserId(String userId) {
+        try {
+            return Optional.ofNullable(userId).map(UUID::fromString);
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
         }
     }
 }

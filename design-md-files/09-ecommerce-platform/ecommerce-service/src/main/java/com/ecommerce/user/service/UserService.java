@@ -66,15 +66,13 @@ public class UserService {
     /** Exchanges a valid refresh token for a fresh access token, rotating the refresh token. */
     @Transactional(readOnly = true)
     public AuthResponse refresh(String refreshToken) {
-        UUID userId = tokenService.resolve(refreshToken)
+        UUID userId = tokenService.consume(refreshToken)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
         if (!user.isActive()) {
             throw new IllegalStateException("Account is suspended");
         }
-        // Rotate: revoke the used refresh token and issue a new one.
-        tokenService.revoke(refreshToken);
         return toAuthResponse(user);
     }
 

@@ -1,0 +1,3 @@
+app:
+  jwt:
+    secret: change-me-in-production-must-be-at-least-32-chars
