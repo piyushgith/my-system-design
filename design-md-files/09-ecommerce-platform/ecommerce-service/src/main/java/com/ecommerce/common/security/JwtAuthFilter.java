@@ -1,5 +1,7 @@
 package com.ecommerce.common.security;
 
+import com.ecommerce.user.domain.User;
+import com.ecommerce.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,6 +23,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(@SuppressWarnings("NullableProblems") HttpServletRequest request,
@@ -35,13 +38,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
         try {
-            AuthenticatedUser user = jwtService.extractUser(token);
-            var auth = new UsernamePasswordAuthenticationToken(
-                    user, null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.role()))
-            );
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            AuthenticatedUser tokenUser = jwtService.extractUser(token);
+            // Re-validate against the DB so suspended accounts and role changes take effect
+            // immediately, instead of trusting potentially stale token claims.
+            User dbUser = userRepository.findById(tokenUser.userId()).orElse(null);
+            if (dbUser != null && dbUser.isActive()) {
+                AuthenticatedUser principal = new AuthenticatedUser(dbUser.getId(), dbUser.getRole().name());
+                var auth = new UsernamePasswordAuthenticationToken(
+                        principal, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + dbUser.getRole().name()))
+                );
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+            // unknown or suspended user — proceed unauthenticated; security config rejects protected routes
         } catch (JwtException ignored) {
             // invalid token — proceed unauthenticated; security config rejects if endpoint requires auth
         }

@@ -5,6 +5,7 @@ import com.ecommerce.order.service.OrderService;
 import com.ecommerce.order.service.dto.CheckoutRequest;
 import com.ecommerce.order.service.dto.OrderResponse;
 import com.ecommerce.order.service.dto.OrderSummary;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1/orders")
 @RequiredArgsConstructor
+@Tag(name = "Orders", description = "Checkout and customer order management")
 public class OrderController {
 
     private final OrderService orderService;

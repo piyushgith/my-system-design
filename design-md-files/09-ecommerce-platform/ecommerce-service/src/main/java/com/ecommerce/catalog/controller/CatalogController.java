@@ -4,6 +4,7 @@ import com.ecommerce.catalog.service.CatalogService;
 import com.ecommerce.catalog.service.dto.CategoryResponse;
 import com.ecommerce.catalog.service.dto.ProductDetail;
 import com.ecommerce.catalog.service.dto.ProductSummary;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1")
 @RequiredArgsConstructor
+@Tag(name = "Catalog", description = "Public category and product browsing")
 public class CatalogController {
 
     private final CatalogService catalogService;

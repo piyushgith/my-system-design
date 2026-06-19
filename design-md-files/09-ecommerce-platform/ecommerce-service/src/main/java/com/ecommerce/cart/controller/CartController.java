@@ -5,6 +5,7 @@ import com.ecommerce.cart.service.dto.AddCartItemRequest;
 import com.ecommerce.cart.service.dto.CartResponse;
 import com.ecommerce.cart.service.dto.UpdateCartItemRequest;
 import com.ecommerce.common.security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1/cart")
 @RequiredArgsConstructor
+@Tag(name = "Cart", description = "Redis-backed shopping cart")
 public class CartController {
 
     private final CartService cartService;

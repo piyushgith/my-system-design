@@ -8,7 +8,10 @@ import com.ecommerce.catalog.repository.ProductRepository;
 import com.ecommerce.catalog.service.dto.*;
 import com.ecommerce.common.exception.ConflictException;
 import com.ecommerce.common.exception.NotFoundException;
+import com.ecommerce.common.security.AuditContext;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CatalogService {
 
+    private static final Logger log = LoggerFactory.getLogger(CatalogService.class);
     private static final int MAX_PAGE_SIZE = 50;
 
     private final ProductRepository productRepository;
@@ -73,7 +77,10 @@ public class CatalogService {
                 .name(request.name())
                 .slug(request.slug())
                 .build();
-        return CategoryResponse.from(categoryRepository.save(category));
+        category = categoryRepository.save(category);
+        log.info("AUDIT actor={} action=CREATE_CATEGORY categoryId={} slug={}",
+                AuditContext.currentActor(), category.getId(), category.getSlug());
+        return CategoryResponse.from(category);
     }
 
     @Transactional
@@ -91,7 +98,10 @@ public class CatalogService {
                 .imageUrl(request.imageUrl())
                 .status(ProductStatus.ACTIVE)
                 .build();
-        return ProductDetail.from(productRepository.save(product));
+        product = productRepository.save(product);
+        log.info("AUDIT actor={} action=CREATE_PRODUCT productId={} title={}",
+                AuditContext.currentActor(), product.getId(), product.getTitle());
+        return ProductDetail.from(product);
     }
 
     @Transactional
@@ -104,7 +114,10 @@ public class CatalogService {
         if (request.stockQuantity() != null) product.setStockQuantity(request.stockQuantity());
         if (request.imageUrl() != null)      product.setImageUrl(request.imageUrl());
         if (request.status() != null)        product.setStatus(parseStatus(request.status()));
-        return ProductDetail.from(productRepository.save(product));
+        product = productRepository.save(product);
+        log.info("AUDIT actor={} action=UPDATE_PRODUCT productId={}",
+                AuditContext.currentActor(), product.getId());
+        return ProductDetail.from(product);
     }
 
     private static ProductStatus parseStatus(String status) {

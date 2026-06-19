@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", uniqueConstraints = @UniqueConstraint(
+        name = "uq_orders_buyer_idempotency", columnNames = {"buyer_id", "idempotency_key"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -40,7 +41,7 @@ public class Order {
     @Column(name = "shipping_address", nullable = false, columnDefinition = "text")
     private String shippingAddress;
 
-    @Column(name = "idempotency_key", nullable = false, unique = true, length = 100)
+    @Column(name = "idempotency_key", nullable = false, length = 100)
     private String idempotencyKey;
 
     @Version

@@ -6,6 +6,8 @@ import com.ecommerce.cart.service.dto.CartResponse;
 import com.ecommerce.catalog.domain.Product;
 import com.ecommerce.catalog.repository.ProductRepository;
 import com.ecommerce.common.exception.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,6 +28,7 @@ import java.util.UUID;
 @Service
 public class CartService {
 
+    private static final Logger log = LoggerFactory.getLogger(CartService.class);
     private static final String KEY_PREFIX = "cart:";
 
     private final StringRedisTemplate redis;
@@ -58,6 +61,11 @@ public class CartService {
         if (quantity <= 0) {
             hash.delete(key, productId.toString());
         } else {
+            // Reject writes for products that don't exist or are archived, so the cart
+            // can't accumulate invalid lines that only get cleaned up later at read time.
+            productRepository.findById(productId)
+                    .filter(Product::isActive)
+                    .orElseThrow(() -> new NotFoundException("Product not found"));
             hash.put(key, productId.toString(), String.valueOf(quantity));
             redis.expire(key, ttl);
         }
@@ -101,10 +109,19 @@ public class CartService {
 
     /** Raw productId -> quantity map; used by checkout. */
     public Map<UUID, Integer> rawItems(UUID userId) {
-        Map<Object, Object> entries = redis.opsForHash().entries(key(userId));
+        String key = key(userId);
+        Map<Object, Object> entries = redis.opsForHash().entries(key);
         Map<UUID, Integer> result = new LinkedHashMap<>();
-        entries.forEach((k, v) ->
-                result.put(UUID.fromString((String) k), Integer.parseInt((String) v)));
+        entries.forEach((k, v) -> {
+            try {
+                result.put(UUID.fromString((String) k), Integer.parseInt((String) v));
+            } catch (RuntimeException ex) {
+                // Corrupt hash entry (bad UUID or non-numeric quantity) — drop it so a single
+                // bad line can't break cart reads or checkout for the whole user.
+                log.warn("Dropping corrupt cart entry for {}: field={}, value={}", key, k, v);
+                redis.opsForHash().delete(key, k);
+            }
+        });
         return result;
     }
 

@@ -19,6 +19,8 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        # Batch-load lazy associations (e.g. Order.items on list pages) to avoid N+1 queries
+        default_batch_fetch_size: 50
 
   flyway:
     enabled: true
@@ -33,12 +35,26 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
 app:
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-must-be-at-least-32-chars}
-    expiry-ms: 3600000
+    expiry-ms: 3600000           # access token: 1 hour
+    refresh-expiry-ms: 1209600000 # refresh token: 14 days
   cart:
     ttl-hours: 168   # 7 days
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  ratelimit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    auth-limit: 10          # requests per window for /v1/auth/**
+    checkout-limit: 20      # requests per window for checkout
+    window-seconds: 60
 
 logging:
   level:

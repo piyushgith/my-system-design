@@ -24,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -62,8 +63,29 @@ public class UserService {
         return UserProfileResponse.from(user);
     }
 
+    /** Exchanges a valid refresh token for a fresh access token, rotating the refresh token. */
+    @Transactional(readOnly = true)
+    public AuthResponse refresh(String refreshToken) {
+        UUID userId = tokenService.resolve(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
+        if (!user.isActive()) {
+            throw new IllegalStateException("Account is suspended");
+        }
+        // Rotate: revoke the used refresh token and issue a new one.
+        tokenService.revoke(refreshToken);
+        return toAuthResponse(user);
+    }
+
+    /** Revokes a refresh token (logout). Access tokens expire on their own short TTL. */
+    public void logout(String refreshToken) {
+        tokenService.revoke(refreshToken);
+    }
+
     private AuthResponse toAuthResponse(User user) {
         String token = jwtService.generateToken(user.getId().toString(), user.getRole().name());
-        return new AuthResponse(token, user.getId(), user.getName(), user.getRole().name());
+        String refreshToken = tokenService.issue(user.getId());
+        return new AuthResponse(token, refreshToken, user.getId(), user.getName(), user.getRole().name());
     }
 }

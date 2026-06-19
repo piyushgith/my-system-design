@@ -2,10 +2,12 @@ package com.ecommerce.catalog.controller;
 
 import com.ecommerce.catalog.service.CatalogService;
 import com.ecommerce.catalog.service.dto.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -13,6 +15,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1/admin")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "Admin Catalog", description = "Admin category and product management")
 public class AdminCatalogController {
 
     private final CatalogService catalogService;
