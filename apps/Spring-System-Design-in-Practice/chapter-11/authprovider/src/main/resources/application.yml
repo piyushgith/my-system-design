@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: authprovider
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  h2:
+    console: true
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  config:
+    import: "configserver:" # Tells Spring to import configuration from the Config Server
+
+server:
+  port: 8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true

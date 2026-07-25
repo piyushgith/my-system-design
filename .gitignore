@@ -32,10 +32,23 @@ replay_pid*
 *.iml
 *.ipr
 *.iws
+out/
 .vscode/
 .cursor/
 *.swp
 *.swo
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
 # Maven
 target/
@@ -54,6 +67,13 @@ build/
 # Spring Boot
 *.pid
 spring-shell.log
+HELP.md
+
+# Bruno (API client)
+.bruno/
+*.bru
+bruno.json
+bruno-collection/
 
 # Secrets / env
 .env
